@@ -16,6 +16,17 @@
       </div>
 
       {% if current_user %}
+      <div class="topbar-right">
+        <div class="user-badge">{{ current_user.username }}</div>
+        <a href="/logout" class="logout-btn">Выход</a>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if current_user %}
+  <div class="layout-shell container-fluid">
+    <aside class="sidebar-menu" aria-label="Основное меню">
       <nav class="topmenu">
         <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
         <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
@@ -26,17 +37,15 @@
         <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
         <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
       </nav>
+    </aside>
+  {% endif %}
 
-      <div class="topbar-right">
-        <div class="user-badge">{{ current_user.username }}</div>
-        <a href="/logout" class="logout-btn">Выход</a>
-      </div>
-      {% endif %}
-    </div>
-  </header>
+    <main class="container main-container {% if current_user %}content-panel{% else %}auth-content{% endif %}">
+      {% block content %}{% endblock %}
+    </main>
 
-  <main class="container main-container">
-    {% block content %}{% endblock %}
-  </main>
+  {% if current_user %}
+  </div>
+  {% endif %}
 </body>
 </html>
