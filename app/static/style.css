@@ -55,12 +55,13 @@ main.container,
   flex-wrap: wrap;
 }
 
-.menu-toggle {
+.topbar .menu-toggle {
   display: none !important;
   background: #1f8fff !important;
   color: #fff !important;
   border: 1px solid #1f8fff !important;
   font-weight: 700 !important;
+  margin-left: auto;
 }
 
 .brand-block {
@@ -594,7 +595,7 @@ td.nested,
     align-items: flex-start;
   }
 
-  .menu-toggle {
+  .topbar .menu-toggle {
     display: inline-flex !important;
   }
 
