@@ -16,6 +16,9 @@
       </div>
 
       {% if current_user %}
+      <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="sideNav">
+        ☰ Меню
+      </button>
       <div class="topbar-right">
         <div class="user-badge">{{ current_user.username }}</div>
         <a href="/logout" class="logout-btn">Выход</a>
@@ -27,7 +30,7 @@
   <main class="container main-container">
     <div class="layout-shell">
       {% if current_user %}
-      <aside class="left-sidebar">
+      <aside class="left-sidebar" id="sideNav">
         <nav class="side-nav">
           <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
           <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
@@ -46,5 +49,18 @@
       </section>
     </div>
   </main>
+  {% if current_user %}
+  <script>
+    (function () {
+      const toggle = document.getElementById('menuToggle');
+      const body = document.body;
+      if (!toggle) return;
+      toggle.addEventListener('click', function () {
+        const isOpen = body.classList.toggle('menu-open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

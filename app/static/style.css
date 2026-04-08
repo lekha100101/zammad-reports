@@ -55,6 +55,14 @@ main.container,
   flex-wrap: wrap;
 }
 
+.menu-toggle {
+  display: none !important;
+  background: #1f8fff !important;
+  color: #fff !important;
+  border: 1px solid #1f8fff !important;
+  font-weight: 700 !important;
+}
+
 .brand-block {
   min-width: 180px;
 }
@@ -473,11 +481,13 @@ td.nested,
 .date-input input[type="date"] {
   width: 140px;
   font-size: 12px;
-  padding: 3px 28px 3px 6px;
-  min-height: 34px;
-  height: 34px;
-  line-height: 1.2;
+  padding: 0 30px 0 8px;
+  min-height: 36px;
+  height: 36px;
+  line-height: 36px;
   box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .date-input input[type="date"]::-webkit-calendar-picker-indicator {
@@ -492,14 +502,18 @@ td.nested,
 
 .filter-bar button {
   min-width: 100px;
-  min-height: 34px !important;
-  height: 34px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 36px !important;
   margin-top: 0;
 }
 
 .filter-bar a[role="button"] {
-  min-height: 34px !important;
-  height: 34px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
   margin-top: 0;
 }
 
@@ -580,13 +594,23 @@ td.nested,
     align-items: flex-start;
   }
 
+  .menu-toggle {
+    display: inline-flex !important;
+  }
+
   .layout-shell {
     grid-template-columns: 1fr;
   }
 
   .left-sidebar {
+    display: none;
     position: static;
     order: -1;
+    margin-bottom: 10px;
+  }
+
+  body.menu-open .left-sidebar {
+    display: block;
   }
 
   .side-nav {
