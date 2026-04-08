@@ -73,71 +73,58 @@ main.container,
   margin-top: 2px;
 }
 
-.topmenu {
-  display: flex !important;
-  flex-wrap: wrap;
+.layout-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  align-items: start;
+}
+
+.content-area {
+  min-width: 0;
+}
+
+.right-sidebar {
+  position: sticky;
+  top: 12px;
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  flex: 1;
-  justify-content: center;
+  padding: 10px;
+  background: #f4f7fb;
+  border: 1px solid #d5e1ee;
+  border-radius: 8px;
 }
 
-.topbar .topmenu > a,
-.topbar .menu-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 8px 14px !important;
-  border-radius: 2px !important;
-  text-decoration: none !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.10) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-
-.topbar .topmenu > a:hover,
-.topbar .menu-btn:hover {
-  background: rgba(255, 255, 255, 0.20) !important;
-  color: #ffffff !important;
-  transform: translateY(-1px);
-}
-
-.topbar .topmenu > a.active,
-.topbar .menu-btn.active {
-  background: #ffffff !important;
-  color: #1f4e79 !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-/* Фоллбек для вертикального меню (если рендерится в боковой панели) */
-main.container aside nav a,
-main.container .sidebar nav a,
-main.container .menu-panel nav a {
+.side-nav .menu-btn {
   display: block !important;
   width: 100% !important;
-  padding: 10px 14px !important;
-  border-radius: 2px !important;
-  border: 1px solid #b9c9da !important;
-  background: #eef3f8 !important;
-  color: #2c3e50 !important;
+  padding: 10px 12px !important;
+  border-radius: 4px !important;
+  border: 1px solid #b8c9db !important;
+  background: linear-gradient(180deg, #ecf2f8 0%, #dde8f4 100%) !important;
+  color: #1f3550 !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   text-decoration: none !important;
+  line-height: 1.15 !important;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-main.container aside nav a[aria-current="page"],
-main.container aside nav a.active,
-main.container .sidebar nav a[aria-current="page"],
-main.container .sidebar nav a.active,
-main.container .menu-panel nav a[aria-current="page"],
-main.container .menu-panel nav a.active {
-  background: #2f5f92 !important;
-  border-color: #2f5f92 !important;
+.side-nav .menu-btn:hover {
+  background: linear-gradient(180deg, #f5f9ff 0%, #e8f1fb 100%) !important;
+  border-color: #8fb0cf !important;
+  transform: translateX(-1px);
+}
+
+.side-nav .menu-btn.active {
+  background: linear-gradient(180deg, #356ca0 0%, #2c5f8f 100%) !important;
+  border-color: #2c5f8f !important;
   color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .topbar-right {
@@ -585,13 +572,18 @@ td.nested,
     align-items: flex-start;
   }
 
-  .topmenu {
-    justify-content: flex-start;
+  .layout-shell {
+    grid-template-columns: 1fr;
   }
 
-  .topbar-right {
-    width: 100%;
-    justify-content: flex-end;
+  .right-sidebar {
+    position: static;
+    order: -1;
+  }
+
+  .side-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
