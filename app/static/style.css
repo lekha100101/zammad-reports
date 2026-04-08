@@ -1,5 +1,21 @@
+:root {
+  --bg-page: #f3f5f9;
+  --bg-surface: #ffffff;
+  --bg-soft: #eef2f7;
+  --text-main: #243447;
+  --border-main: #d6dee8;
+  --border-strong: #bcc8d6;
+  --accent: #2f5d87;
+  --accent-soft: #e5edf6;
+}
+
 body {
-  background: #f4f7fb;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+* {
+  border-radius: 0 !important;
 }
 
 h1 {
@@ -31,9 +47,9 @@ main.container,
 /* ===== Верхняя панель ===== */
 
 .topbar {
-  background: linear-gradient(135deg, #1f4e79, #2f6fa8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(120deg, #2f5d87, #3f719f);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 1px 4px rgba(23, 33, 44, 0.12);
   padding: 12px 26px;
 }
 
@@ -78,8 +94,8 @@ main.container,
 .sidebar-menu {
   position: sticky;
   top: 16px;
-  background: #ffffff;
-  border: 1px solid #d9e1ea;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
   border-radius: 14px;
   padding: 14px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
@@ -102,32 +118,32 @@ main.container,
   font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1.25 !important;
-  color: #27496d !important;
-  background: #f7faff !important;
-  border: 1px solid #d8e4f0 !important;
+  color: var(--text-main) !important;
+  background: var(--bg-soft) !important;
+  border: 1px solid var(--border-main) !important;
   transition: all 0.18s ease;
 }
 
 .sidebar-menu .menu-btn:hover {
-  background: #eaf2fb !important;
-  border-color: #bfd5eb !important;
-  color: #1f4e79 !important;
-  transform: translateX(2px);
+  background: #dde8f5 !important;
+  border-color: var(--border-strong) !important;
+  color: var(--accent) !important;
+  transform: none;
 }
 
 .sidebar-menu .menu-btn.active {
-  background: #1f4e79 !important;
+  background: var(--accent) !important;
   color: #ffffff !important;
-  border-color: #1f4e79 !important;
-  box-shadow: 0 2px 8px rgba(31, 78, 121, 0.22);
+  border-color: var(--accent) !important;
+  box-shadow: none;
 }
 
 .content-panel {
-  background: #ffffff;
-  border: 1px solid #d9e1ea;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
   border-radius: 14px;
   padding: 20px 24px 22px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(36, 52, 71, 0.07);
 }
 
 .auth-content {
@@ -204,10 +220,10 @@ a[role="button"] {
   text-decoration: none !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
-  background: #ffffff !important;
-  color: #1f4e79 !important;
-  border: 1px solid #b9c9da !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  background: var(--bg-surface) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: none !important;
 }
 
 button:hover,
@@ -217,9 +233,9 @@ input[type="submit"]:hover,
 input[type="button"]:hover,
 a[role="button"]:hover {
   background: #f2f7fc !important;
-  color: #1f4e79 !important;
-  border-color: #8fb0cf !important;
-  transform: translateY(-1px);
+  color: var(--accent) !important;
+  border-color: #9dafc3 !important;
+  transform: none;
 }
 
 button.secondary,
@@ -279,19 +295,36 @@ form.inline-form {
   margin: 0;
 }
 
+input,
+select,
+textarea,
+input[type="date"] {
+  border: 1px solid #9ba9b8 !important;
+  background: #fff !important;
+  color: var(--text-main) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+input[type="date"]:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px rgba(47, 93, 135, 0.18) !important;
+}
+
 /* ===== Общие таблицы ===== */
 
 table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  background: #fff;
+  background: var(--bg-surface);
   font-size: 11px;
 }
 
 table th,
 table td {
-  border: 1px solid #7f7f7f;
+  border: 1px solid #97a4b4;
   padding: 4px 6px;
   vertical-align: middle;
   line-height: 1.15;
@@ -299,7 +332,7 @@ table td {
 }
 
 table thead th {
-  background: #e9eef5;
+  background: #e8edf4;
   text-align: center;
   font-weight: 700;
 }
@@ -309,7 +342,7 @@ table tbody tr:nth-child(even) {
 }
 
 table tbody tr:hover {
-  background: #f5f9ff;
+  background: #eef3f9;
 }
 
 table td.center,
@@ -480,15 +513,18 @@ td.nested,
 .date-input input[type="date"] {
   width: 140px;
   font-size: 12px;
-  padding: 3px 6px;
+  padding: 3px 30px 3px 6px;
+  min-height: 30px;
 }
 
 .date-input input[type="date"]::-webkit-calendar-picker-indicator {
   position: absolute;
-  right: 4px;
+  right: 6px;
   cursor: pointer;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: calc(100% - 4px);
+  margin: 2px 0;
+  opacity: 1;
 }
 
 .filter-bar button {
