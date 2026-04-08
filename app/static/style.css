@@ -1,14 +1,14 @@
 body {
-  background: #f4f7fb;
-  color: #243447;
+  background: #f0f3f6;
+  color: #2f3b4a;
 }
 
 h1 {
   margin: 0 0 12px;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #1f3550;
+  letter-spacing: -0.01em;
+  color: #1f2d3d;
 }
 
 main.container,
@@ -19,12 +19,11 @@ main.container,
 
 .main-container {
   max-width: 1600px;
-  margin-top: 18px;
-  background: #ffffff;
-  border: 1px solid #dce5ef;
-  border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(31, 53, 80, 0.08);
-  padding: 22px 24px 26px !important;
+  margin-top: 14px;
+  padding: 0 !important;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .cards article {
@@ -40,10 +39,10 @@ main.container,
 /* ===== Верхняя панель ===== */
 
 .topbar {
-  background: linear-gradient(135deg, #1f4e79, #2f6fa8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 10px 18px;
+  background: #2b3a4c;
+  border-bottom: 1px solid #202c3a;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  padding: 8px 18px;
 }
 
 .topbar-inner {
@@ -75,16 +74,20 @@ main.container,
 
 .layout-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 20px;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
 }
 
 .content-area {
   min-width: 0;
+  background: #ffffff;
+  border: 1px solid #d5dde6;
+  border-radius: 2px;
+  padding: 18px 20px 20px;
 }
 
-.right-sidebar {
+.left-sidebar {
   position: sticky;
   top: 12px;
 }
@@ -92,39 +95,39 @@ main.container,
 .side-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  background: #f4f7fb;
-  border: 1px solid #d5e1ee;
-  border-radius: 8px;
+  gap: 2px;
+  padding: 8px 0;
+  background: #2f4053;
+  border: 1px solid #263545;
+  border-radius: 2px;
 }
 
 .side-nav .menu-btn {
   display: block !important;
   width: 100% !important;
-  padding: 10px 12px !important;
-  border-radius: 4px !important;
-  border: 1px solid #b8c9db !important;
-  background: linear-gradient(180deg, #ecf2f8 0%, #dde8f4 100%) !important;
-  color: #1f3550 !important;
+  padding: 11px 14px !important;
+  border-radius: 0 !important;
+  border: none !important;
+  border-left: 3px solid transparent !important;
+  background: transparent !important;
+  color: #d8e3ef !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   text-decoration: none !important;
   line-height: 1.15 !important;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .side-nav .menu-btn:hover {
-  background: linear-gradient(180deg, #f5f9ff 0%, #e8f1fb 100%) !important;
-  border-color: #8fb0cf !important;
-  transform: translateX(-1px);
+  background: #384a5f !important;
+  color: #ffffff !important;
 }
 
 .side-nav .menu-btn.active {
-  background: linear-gradient(180deg, #356ca0 0%, #2c5f8f 100%) !important;
-  border-color: #2c5f8f !important;
+  background: #1f8fff !important;
+  border-left-color: #8dc7ff !important;
   color: #ffffff !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .topbar-right {
@@ -303,11 +306,11 @@ table th.center,
 .report-wrapper {
   width: 100%;
   overflow-x: auto;
-  margin-top: 12px;
-  border: 1px solid #d9e2ee;
-  border-radius: 8px;
+  margin-top: 10px;
+  border: 1px solid #d5dde6;
+  border-radius: 2px;
   background: #ffffff;
-  box-shadow: 0 6px 14px rgba(31, 53, 80, 0.05);
+  box-shadow: none;
 }
 
 .compact-table {
@@ -442,10 +445,10 @@ td.nested,
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid #dce5ef;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #f9fbfe 0%, #f3f7fc 100%);
+  padding: 10px 12px;
+  border: 1px solid #d5dde6;
+  border-radius: 2px;
+  background: #f7f9fc;
 }
 
 .filter-item {
@@ -576,7 +579,7 @@ td.nested,
     grid-template-columns: 1fr;
   }
 
-  .right-sidebar {
+  .left-sidebar {
     position: static;
     order: -1;
   }

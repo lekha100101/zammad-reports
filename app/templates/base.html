@@ -26,12 +26,8 @@
 
   <main class="container main-container">
     <div class="layout-shell">
-      <section class="content-area">
-        {% block content %}{% endblock %}
-      </section>
-
       {% if current_user %}
-      <aside class="right-sidebar">
+      <aside class="left-sidebar">
         <nav class="side-nav">
           <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
           <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
@@ -44,6 +40,10 @@
         </nav>
       </aside>
       {% endif %}
+
+      <section class="content-area">
+        {% block content %}{% endblock %}
+      </section>
     </div>
   </main>
 </body>
