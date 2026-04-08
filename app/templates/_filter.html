@@ -1,0 +1,16 @@
+<form method="get" class="filter-bar">
+
+<div class="filter-item">
+<label>Дата с</label>
+<input type="date" name="date_from" value="{{ date_from or '' }}">
+</div>
+
+<div class="filter-item">
+<label>Дата по</label>
+<input type="date" name="date_to" value="{{ date_to or '' }}">
+</div>
+
+<button type="submit">
+Применить
+</button>
+</form>

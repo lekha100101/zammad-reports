@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ request.app.title }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-block">
+        <div class="brand-title">Zammad Reports</div>
+        <div class="brand-subtitle">Отчетность и аналитика</div>
+      </div>
+
+      {% if current_user %}
+      <nav class="topmenu">
+        <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
+        <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
+        <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
+        <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
+        <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
+        <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
+        <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
+        <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
+      </nav>
+
+      <div class="topbar-right">
+        <div class="user-badge">{{ current_user.username }}</div>
+        <a href="/logout" class="logout-btn">Выход</a>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="container main-container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

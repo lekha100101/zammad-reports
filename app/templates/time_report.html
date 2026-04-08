@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Трудозатраты по исполнителям</h1>
+{% include "_filter.html" %}
+<a role="button" href="/api/reports/time/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+<a role="button" class="secondary" href="/api/reports/time/export.csv?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">CSV</a>
+<table>
+  <thead><tr><th>Исполнитель</th><th>Минуты</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr><td>{{ row.agent }}</td><td>{{ row.minutes }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

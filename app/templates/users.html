@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Управление пользователями</h1>
+
+<article>
+  <h3>Создать пользователя</h3>
+  <form method="post" action="/admin/users/create">
+    <div class="grid">
+      <label>
+        Логин
+        <input type="text" name="username" required>
+      </label>
+      <label>
+        Пароль
+        <input type="password" name="password" required>
+      </label>
+    </div>
+    <label>
+      <input type="checkbox" name="is_admin" value="1">
+      Администратор
+    </label>
+    <button type="submit" class="btn-inline">Создать</button>
+  </form>
+</article>
+
+<article>
+  <h3>Список пользователей</h3>
+    <div class="table-wrapper">
+     <table class="compact-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Логин</th>
+          <th>Активен</th>
+          <th>Админ</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ "Да" if user.is_active else "Нет" }}</td>
+          <td>{{ "Да" if user.is_admin else "Нет" }}</td>
+          <td>
+            {% if current_user.id != user.id %}
+            <form method="post" action="/admin/users/{{ user.id }}/toggle" style="display:inline;">
+              <button type="submit" class="btn-small">{{ "Отключить" if user.is_active else "Включить" }}</button>
+            </form>
+            <form method="post" action="/admin/users/{{ user.id }}/delete" style="display:inline;" onsubmit="return confirm('Удалить пользователя?');">
+              <button type="submit" class="btn-small danger">Удалить</button>
+            </form>
+  	    {% else %}
+            текущий пользователь
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+     </table>
+    </div>
+</article>
+{% endblock %}

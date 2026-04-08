@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Панель отчетов</h1>
+
+<div class="grid cards">
+  <article>
+    <h3>Открытые</h3>
+    <p class="big-number">{{ summary.open_count }}</p>
+  </article>
+  <article>
+    <h3>Закрытые</h3>
+    <p class="big-number">{{ summary.closed_count }}</p>
+  </article>
+  <article>
+    <h3>Приостановленные</h3>
+    <p class="big-number">{{ summary.suspended_count }}</p>
+  </article>
+</div>
+
+<article>
+  <h3>Последняя синхронизация</h3>
+  {% if summary.last_sync %}
+    <p><b>Время:</b> {{ summary.last_sync }}</p>
+    <p><b>Загружено тикетов:</b> {{ summary.last_sync_count }}</p>
+  {% else %}
+    <p>Синхронизация еще не выполнялась</p>
+  {% endif %}
+</article>
+
+<article>
+  <h3>Синхронизация</h3>
+
+  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?'); class="inline-form"">
+    <button type="submit" class="btn-inline">
+      Синхронизировать
+    </button>
+  </form>
+
+</article>
+{% endblock %}
