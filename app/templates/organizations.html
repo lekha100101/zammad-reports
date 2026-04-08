@@ -2,7 +2,9 @@
 {% block content %}
 <h1>Отчет по организациям</h1>
 {% include "_filter.html" %}
-<a role="button" href="/api/reports/organizations/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+<div class="page-actions">
+  <a role="button" href="/api/reports/organizations/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+</div>
 <div class="table-wrapper">
   <table class="compact-table">
     <thead><tr><th>Организация</th><th>Количество</th></tr></thead>

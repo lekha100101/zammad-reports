@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Просроченные тикеты</h1>
-<a role="button" href="/api/reports/overdue/export.xlsx">Excel</a>
-<a role="button" class="secondary" href="/api/reports/overdue/export.csv">CSV</a>
-<table>
+<div class="page-actions">
+  <a role="button" href="/api/reports/overdue/export.xlsx">Excel</a>
+</div>
+<div class="table-wrapper">
+<table class="compact-table">
   <thead><tr><th>Номер</th><th>Заголовок</th><th>Группа</th><th>Исполнитель</th><th>Escalation At</th></tr></thead>
   <tbody>
     {% for row in rows %}
@@ -17,4 +19,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

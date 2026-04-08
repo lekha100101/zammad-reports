@@ -1,10 +1,14 @@
 body {
   background: #f4f7fb;
+  color: #243447;
 }
 
 h1 {
-  margin-bottom: 6px;
-  font-size: 18px;
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1f3550;
 }
 
 main.container,
@@ -16,6 +20,11 @@ main.container,
 .main-container {
   max-width: 1600px;
   margin-top: 18px;
+  background: #ffffff;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(31, 53, 80, 0.08);
+  padding: 22px 24px 26px !important;
 }
 
 .cards article {
@@ -307,7 +316,11 @@ table th.center,
 .report-wrapper {
   width: 100%;
   overflow-x: auto;
-  margin-top: 8px;
+  margin-top: 12px;
+  border: 1px solid #d9e2ee;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(31, 53, 80, 0.05);
 }
 
 .compact-table {
@@ -439,9 +452,13 @@ td.nested,
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f9fbfe 0%, #f3f7fc 100%);
 }
 
 .filter-item {
@@ -455,6 +472,7 @@ td.nested,
   font-weight: 600;
   margin: 0;
   line-height: 1;
+  color: #35506b;
 }
 
 .date-input {
@@ -488,6 +506,13 @@ td.nested,
 
 .filter-bar a[role="button"] {
   margin-top: 14px;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .compact-filter {
