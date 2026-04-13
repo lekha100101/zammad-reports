@@ -375,14 +375,14 @@ table th.center,
 /* ===== Zabbix v7-like theme override ===== */
 
 :root {
-  --zbx-bg: #f2f4f8;
-  --zbx-header: #2d3a4f;
-  --zbx-sidebar: #2f3b4f;
-  --zbx-sidebar-hover: #3a4961;
-  --zbx-sidebar-active: #2f7ed8;
+  --zbx-bg: #edf1f5;
+  --zbx-header: #263445;
+  --zbx-sidebar: #2b3648;
+  --zbx-sidebar-hover: #364359;
+  --zbx-sidebar-active: #2474c9;
   --zbx-card: #ffffff;
-  --zbx-border: #d6dee8;
-  --zbx-text: #243447;
+  --zbx-border: #d7dee7;
+  --zbx-text: #2c3b4d;
 }
 
 body {
@@ -395,18 +395,20 @@ body {
   background: var(--zbx-header);
   border-bottom: 1px solid #1f2937;
   box-shadow: none;
+  min-height: 56px;
 }
 
 .main-container {
-  max-width: 1680px;
+  max-width: 1820px;
 }
 
 .layout-shell {
-  gap: 12px;
+  gap: 10px;
+  grid-template-columns: 230px minmax(0, 1fr);
 }
 
 .left-sidebar {
-  top: 8px;
+  top: 6px;
 }
 
 .side-nav {
@@ -419,7 +421,9 @@ body {
 .side-nav .menu-btn {
   border-left: 4px solid transparent !important;
   color: #e7edf6 !important;
-  font-weight: 600 !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  padding: 12px 14px !important;
 }
 
 .side-nav .menu-btn:hover {
@@ -434,12 +438,14 @@ body {
 .content-area {
   background: var(--zbx-card);
   border: 1px solid var(--zbx-border);
-  border-radius: 3px;
+  border-radius: 2px;
+  padding: 16px;
 }
 
 h1 {
-  font-size: 42px;
-  color: #1d3557;
+  font-size: 28px;
+  color: #23364a;
+  margin-bottom: 16px;
 }
 
 .filter-bar,
@@ -450,8 +456,33 @@ h1 {
 }
 
 table thead th {
-  background: #e7edf5;
-  color: #1e2f45;
+  background: #eef3f8;
+  color: #21364b;
+  font-size: 12px;
+}
+
+.topbar .menu-toggle {
+  background: transparent !important;
+  border: 1px solid #4b5e78 !important;
+  color: #dbe7f4 !important;
+}
+
+.user-badge {
+  background: #314156 !important;
+  border-color: #43566f !important;
+}
+
+.logout-btn {
+  background: #d0442f !important;
+  border-color: #d0442f !important;
+}
+
+button,
+a[role="button"],
+input[type="submit"] {
+  border-radius: 2px !important;
+  background: #f5f7fa !important;
+  border-color: #c8d3e1 !important;
 }
 
 /* ===== Вложенная таблица исполнителей ===== */
