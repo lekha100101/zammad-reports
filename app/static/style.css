@@ -372,6 +372,88 @@ table th.center,
   width: 95px;
 }
 
+/* ===== Zabbix v7-like theme override ===== */
+
+:root {
+  --zbx-bg: #f2f4f8;
+  --zbx-header: #2d3a4f;
+  --zbx-sidebar: #2f3b4f;
+  --zbx-sidebar-hover: #3a4961;
+  --zbx-sidebar-active: #2f7ed8;
+  --zbx-card: #ffffff;
+  --zbx-border: #d6dee8;
+  --zbx-text: #243447;
+}
+
+body {
+  background: var(--zbx-bg);
+  color: var(--zbx-text);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.topbar {
+  background: var(--zbx-header);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: none;
+}
+
+.main-container {
+  max-width: 1680px;
+}
+
+.layout-shell {
+  gap: 12px;
+}
+
+.left-sidebar {
+  top: 8px;
+}
+
+.side-nav {
+  background: var(--zbx-sidebar);
+  border: 1px solid #263246;
+  border-radius: 3px;
+  padding: 6px 0;
+}
+
+.side-nav .menu-btn {
+  border-left: 4px solid transparent !important;
+  color: #e7edf6 !important;
+  font-weight: 600 !important;
+}
+
+.side-nav .menu-btn:hover {
+  background: var(--zbx-sidebar-hover) !important;
+}
+
+.side-nav .menu-btn.active {
+  background: var(--zbx-sidebar-active) !important;
+  border-left-color: #9ec8ff !important;
+}
+
+.content-area {
+  background: var(--zbx-card);
+  border: 1px solid var(--zbx-border);
+  border-radius: 3px;
+}
+
+h1 {
+  font-size: 42px;
+  color: #1d3557;
+}
+
+.filter-bar,
+.table-wrapper,
+.report-wrapper {
+  border-color: var(--zbx-border);
+  border-radius: 3px;
+}
+
+table thead th {
+  background: #e7edf5;
+  color: #1e2f45;
+}
+
 /* ===== Вложенная таблица исполнителей ===== */
 
 td.nested,
