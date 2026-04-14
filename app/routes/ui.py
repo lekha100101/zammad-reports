@@ -167,6 +167,58 @@ def regional_summary(
     )
 
 
+@router.get("/reports/sla", response_class=HTMLResponse)
+@login_required_page
+def sla_report(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    rows = ReportService(db).sla_report(date_from, date_to)
+    return templates.TemplateResponse(
+        "sla_report.html",
+        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
+    )
+
+
+@router.get("/reports/workload", response_class=HTMLResponse)
+@login_required_page
+def workload_report(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    data = ReportService(db).workload_report(date_from, date_to)
+    return templates.TemplateResponse(
+        "workload_report.html",
+        {
+            "request": request,
+            "agent_rows": data["agents"],
+            "trend_rows": data["trend"],
+            "date_from": date_from,
+            "date_to": date_to,
+            "current_user": request.state.current_user,
+        },
+    )
+
+
+@router.get("/reports/time-accounting", response_class=HTMLResponse)
+@login_required_page
+def time_accounting_report(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    rows = ReportService(db).time_accounting_report(date_from, date_to)
+    return templates.TemplateResponse(
+        "time_accounting_report.html",
+        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
+    )
+
+
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):

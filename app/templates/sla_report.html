@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>SLA: First response / Resolution</h1>
+{% include "_filter.html" %}
+<div class="page-actions">
+  <a role="button" href="/api/reports/sla/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+</div>
+<div class="table-wrapper">
+  <table class="compact-table">
+    <thead>
+      <tr>
+        <th>Группа</th>
+        <th>Всего тикетов</th>
+        <th>First response в SLA</th>
+        <th>First response SLA %</th>
+        <th>Resolution в SLA</th>
+        <th>Resolution SLA %</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.group }}</td>
+        <td class="center">{{ row.total }}</td>
+        <td class="center">{{ row.response_in_sla }}</td>
+        <td class="center">{{ row.response_sla_pct }}%</td>
+        <td class="center">{{ row.resolution_in_sla }}</td>
+        <td class="center">{{ row.resolution_sla_pct }}%</td>
+      </tr>
+      {% endfor %}
+      {% if not rows %}
+      <tr><td colspan="6" class="center empty-row">Нет данных</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

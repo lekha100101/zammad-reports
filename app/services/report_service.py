@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import and_, case, cast, Date, func, or_
 from sqlalchemy.orm import Session
 
 from app.models import Ticket, User, Group, Organization, TicketState, ReportRegion
@@ -297,5 +297,208 @@ class ReportService:
                 "avg_close_time": self.format_duration(avg_close_seconds),
                 "avg_response_time": self.format_duration(avg_response_seconds),
             })
+
+        return result
+
+    def sla_report(self, date_from=None, date_to=None):
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+
+        response_sla_seconds = 60 * 60
+        resolution_sla_seconds = 24 * 60 * 60
+
+        query = (
+            self.db.query(
+                Group.name.label("group_name"),
+                func.count(Ticket.id).label("total"),
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                Ticket.first_response_at.is_not(None),
+                                (func.extract("epoch", Ticket.first_response_at) - func.extract("epoch", Ticket.created_at)) <= response_sla_seconds,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("response_in_sla"),
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                Ticket.close_at.is_not(None),
+                                (func.extract("epoch", Ticket.close_at) - func.extract("epoch", Ticket.created_at)) <= resolution_sla_seconds,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("resolution_in_sla"),
+            )
+            .outerjoin(Group, Ticket.group_id == Group.id)
+        )
+
+        if dt_from:
+            query = query.filter(Ticket.created_at >= dt_from)
+        if dt_to:
+            query = query.filter(Ticket.created_at < dt_to)
+
+        rows = query.group_by(Group.name).order_by(Group.name.asc()).all()
+
+        result = []
+        for row in rows:
+            total = int(row.total or 0)
+            response_ok = int(row.response_in_sla or 0)
+            resolution_ok = int(row.resolution_in_sla or 0)
+
+            result.append(
+                {
+                    "group": row.group_name or "Без группы",
+                    "total": total,
+                    "response_in_sla": response_ok,
+                    "response_sla_pct": round((response_ok / total) * 100, 1) if total else 0,
+                    "resolution_in_sla": resolution_ok,
+                    "resolution_sla_pct": round((resolution_ok / total) * 100, 1) if total else 0,
+                }
+            )
+
+        return result
+
+    def workload_report(self, date_from=None, date_to=None):
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+
+        closed_statuses = ["closed", "merged"]
+
+        open_agents = (
+            self.db.query(
+                User.firstname,
+                User.lastname,
+                User.login,
+                func.count(Ticket.id).label("open_count"),
+                func.avg(func.extract("epoch", func.now()) - func.extract("epoch", Ticket.created_at)).label("avg_age_sec"),
+            )
+            .join(Ticket, Ticket.owner_id == User.id)
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_statuses)))
+        )
+
+        if dt_from:
+            open_agents = open_agents.filter(Ticket.created_at >= dt_from)
+        if dt_to:
+            open_agents = open_agents.filter(Ticket.created_at < dt_to)
+
+        open_agents = (
+            open_agents.group_by(User.firstname, User.lastname, User.login)
+            .order_by(func.count(Ticket.id).desc())
+            .all()
+        )
+
+        agent_rows = []
+        for row in open_agents:
+            fullname = " ".join([x for x in [row[0], row[1]] if x]).strip() or (row[2] or "Unknown")
+            agent_rows.append(
+                {
+                    "agent": fullname,
+                    "open_count": int(row[3] or 0),
+                    "avg_age": self.format_duration(row[4]),
+                }
+            )
+
+        trend_from = dt_from or (datetime.utcnow() - timedelta(days=13))
+        trend_to = dt_to or (datetime.utcnow() + timedelta(days=1))
+
+        created_daily = (
+            self.db.query(
+                cast(Ticket.created_at, Date).label("day"),
+                func.count(Ticket.id).label("cnt"),
+            )
+            .filter(Ticket.created_at >= trend_from)
+            .filter(Ticket.created_at < trend_to)
+            .group_by(cast(Ticket.created_at, Date))
+            .all()
+        )
+        closed_daily = (
+            self.db.query(
+                cast(Ticket.close_at, Date).label("day"),
+                func.count(Ticket.id).label("cnt"),
+            )
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.close_at.is_not(None))
+            .filter(Ticket.close_at >= trend_from)
+            .filter(Ticket.close_at < trend_to)
+            .filter(func.lower(TicketState.name).in_(closed_statuses))
+            .group_by(cast(Ticket.close_at, Date))
+            .all()
+        )
+
+        created_map = {str(r.day): int(r.cnt or 0) for r in created_daily}
+        closed_map = {str(r.day): int(r.cnt or 0) for r in closed_daily}
+
+        trend_rows = []
+        day = trend_from.date()
+        end_day = (trend_to - timedelta(days=1)).date()
+        backlog = 0
+        while day <= end_day:
+            key = str(day)
+            created = created_map.get(key, 0)
+            closed = closed_map.get(key, 0)
+            backlog += created - closed
+            trend_rows.append(
+                {
+                    "day": key,
+                    "created": created,
+                    "closed": closed,
+                    "delta": created - closed,
+                    "backlog_trend": backlog,
+                }
+            )
+            day += timedelta(days=1)
+
+        return {"agents": agent_rows, "trend": trend_rows}
+
+    def time_accounting_report(self, date_from=None, date_to=None):
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+
+        from app.models import TimeAccounting
+
+        query = (
+            self.db.query(
+                User.firstname,
+                User.lastname,
+                User.login,
+                Group.name.label("group_name"),
+                func.sum(TimeAccounting.time_unit).label("time_units"),
+            )
+            .join(User, TimeAccounting.created_by_id == User.id)
+            .outerjoin(Ticket, TimeAccounting.ticket_id == Ticket.id)
+            .outerjoin(Group, Ticket.group_id == Group.id)
+        )
+
+        if dt_from:
+            query = query.filter(TimeAccounting.created_at >= dt_from)
+        if dt_to:
+            query = query.filter(TimeAccounting.created_at < dt_to)
+
+        rows = (
+            query.group_by(User.firstname, User.lastname, User.login, Group.name)
+            .order_by(func.sum(TimeAccounting.time_unit).desc())
+            .all()
+        )
+
+        result = []
+        for row in rows:
+            fullname = " ".join([x for x in [row[0], row[1]] if x]).strip() or (row[2] or "Unknown")
+            units = float(row[4] or 0)
+            result.append(
+                {
+                    "agent": fullname,
+                    "group": row[3] or "Без группы",
+                    "minutes": round(units, 2),
+                    "hours": round(units / 60, 2),
+                }
+            )
 
         return result
