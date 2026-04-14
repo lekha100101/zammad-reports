@@ -469,21 +469,16 @@ class ReportService:
 
         from app.models import TimeAccounting
 
+        period_col = func.coalesce(TimeAccounting.created_at, TimeAccounting.updated_at)
         query = (
             self.db.query(
-                User.firstname,
-                User.lastname,
-                User.login,
-                func.coalesce(ReportRegion.name, Group.name).label("group_name"),
+                TimeAccounting.created_by_id.label("user_id"),
+                Ticket.group_id.label("group_id"),
                 func.sum(TimeAccounting.time_unit).label("time_units"),
             )
-            .outerjoin(User, TimeAccounting.created_by_id == User.id)
             .outerjoin(Ticket, TimeAccounting.ticket_id == Ticket.id)
-            .outerjoin(Group, Ticket.group_id == Group.id)
-            .outerjoin(ReportRegion, ReportRegion.group_id == Group.id)
         )
 
-        period_col = func.coalesce(TimeAccounting.created_at, TimeAccounting.updated_at)
         if dt_from:
             query = query.filter(period_col >= dt_from)
         if dt_to:
@@ -491,23 +486,29 @@ class ReportService:
 
         rows = (
             query.group_by(
-                User.firstname,
-                User.lastname,
-                User.login,
-                func.coalesce(ReportRegion.name, Group.name),
+                TimeAccounting.created_by_id,
+                Ticket.group_id,
             )
             .order_by(func.sum(TimeAccounting.time_unit).desc())
             .all()
         )
 
+        users = {
+            u.id: (" ".join([x for x in [u.firstname, u.lastname] if x]).strip() or (u.login or "Unknown"))
+            for u in self.db.query(User.id, User.firstname, User.lastname, User.login).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+
         result = []
         for row in rows:
-            fullname = " ".join([x for x in [row[0], row[1]] if x]).strip() or (row[2] or "Unknown")
-            units = float(row[4] or 0)
+            fullname = users.get(row.user_id, "Unknown")
+            display_group = regions.get(row.group_id) or groups.get(row.group_id) or "Без группы"
+            units = float(row.time_units or 0)
             result.append(
                 {
                     "agent": fullname,
-                    "group": row[3] or "Без группы",
+                    "group": display_group,
                     "minutes": round(units, 2),
                     "hours": round(units / 60, 2),
                 }
