@@ -215,28 +215,44 @@ class SyncService:
 
     def sync_time_accounting(self):
         log = self._log_start("time")
-        r = requests.get(
-            f"{self.base_url}/api/v1/time_accountings",
-            headers=self.headers
-        )
-
-        data = r.json()
+        page = 1
+        per_page = 100
         count = 0
 
-        for t in data:
-            obj = self.db.get(TimeAccounting, t["id"])
-            if not obj:
-                obj = TimeAccounting(id=t["id"])
-                self.db.add(obj)
+        while True:
+            r = requests.get(
+                f"{self.base_url}/api/v1/time_accountings?page={page}&per_page={per_page}",
+                headers=self.headers
+            )
+            data = r.json()
 
-            obj.ticket_id = t.get("ticket_id")
-            obj.time_unit = t.get("time_unit")
-            obj.created_by_id = t.get("created_by_id")
-            obj.created_at = parse_dt(t.get("created_at"))
+            if isinstance(data, dict):
+                data = data.get("assets") or data.get("data") or data.get("time_accountings") or []
 
-            count += 1
+            if not isinstance(data, list) or not data:
+                break
 
-        self.db.commit()
+            for t in data:
+                obj = self.db.get(TimeAccounting, t["id"])
+                if not obj:
+                    obj = TimeAccounting(id=t["id"])
+                    self.db.add(obj)
+
+                obj.ticket_id = t.get("ticket_id")
+                obj.time_unit = t.get("time_unit")
+                obj.created_by_id = t.get("created_by_id")
+                obj.created_at = parse_dt(t.get("created_at"))
+                obj.updated_at = parse_dt(t.get("updated_at"))
+
+                count += 1
+
+            self.db.commit()
+
+            if len(data) < per_page:
+                break
+
+            page += 1
+
         self._log_finish(log, count)
         return count
 
