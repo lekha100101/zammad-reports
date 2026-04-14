@@ -8,10 +8,30 @@ from app.models import Ticket, User, Group, Organization, TimeAccounting, SyncLo
 def parse_dt(value):
     if not value:
         return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except Exception:
+    if isinstance(value, datetime):
+        return value
+
+    value = str(value).strip()
+    if not value:
         return None
+
+    formats = [
+        None,  # fromisoformat
+        "%Y-%m-%d %H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S",
+    ]
+
+    for fmt in formats:
+        try:
+            if fmt is None:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return datetime.strptime(value, fmt)
+        except Exception:
+            continue
+
+    return None
 
 class SyncService:
 
