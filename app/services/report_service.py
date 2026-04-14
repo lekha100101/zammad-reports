@@ -309,7 +309,7 @@ class ReportService:
 
         query = (
             self.db.query(
-                Group.name.label("group_name"),
+                func.coalesce(ReportRegion.name, Group.name).label("group_name"),
                 func.count(Ticket.id).label("total"),
                 func.sum(
                     case(
@@ -337,6 +337,7 @@ class ReportService:
                 ).label("resolution_in_sla"),
             )
             .outerjoin(Group, Ticket.group_id == Group.id)
+            .outerjoin(ReportRegion, ReportRegion.group_id == Group.id)
         )
 
         if dt_from:
@@ -344,7 +345,11 @@ class ReportService:
         if dt_to:
             query = query.filter(Ticket.created_at < dt_to)
 
-        rows = query.group_by(Group.name).order_by(Group.name.asc()).all()
+        rows = (
+            query.group_by(func.coalesce(ReportRegion.name, Group.name))
+            .order_by(func.coalesce(ReportRegion.name, Group.name).asc())
+            .all()
+        )
 
         result = []
         for row in rows:
