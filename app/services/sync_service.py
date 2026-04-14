@@ -232,7 +232,7 @@ class SyncService:
             obj.ticket_id = t.get("ticket_id")
             obj.time_unit = t.get("time_unit")
             obj.created_by_id = t.get("created_by_id")
-            obj.created_at = t.get("created_at")
+            obj.created_at = parse_dt(t.get("created_at"))
 
             count += 1
 
@@ -246,5 +246,6 @@ class SyncService:
             "groups": self.sync_groups(),
             "organizations": self.sync_organizations(),
             "states": self.sync_ticket_states(),
-            "tickets": self.sync_tickets()
+            "tickets": self.sync_tickets(),
+            "time_accountings": self.sync_time_accounting(),
         }

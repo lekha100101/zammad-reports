@@ -477,7 +477,7 @@ class ReportService:
                 Group.name.label("group_name"),
                 func.sum(TimeAccounting.time_unit).label("time_units"),
             )
-            .join(User, TimeAccounting.created_by_id == User.id)
+            .outerjoin(User, TimeAccounting.created_by_id == User.id)
             .outerjoin(Ticket, TimeAccounting.ticket_id == Ticket.id)
             .outerjoin(Group, Ticket.group_id == Group.id)
         )
