@@ -89,6 +89,7 @@ class ReportService:
                 func.coalesce(ReportRegion.name, Group.name).label("group_name"),
                 func.count(Ticket.id)
             )
+            .select_from(Group)
             .join(Ticket, Ticket.group_id == Group.id)
             .outerjoin(ReportRegion, ReportRegion.group_id == Group.id)
         )
