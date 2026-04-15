@@ -1,10 +1,12 @@
 import os
+import requests
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.auth import require_user
 from app.deps import get_db
+from app.models import Ticket
 from app.services.sync_service import SyncService
 
 router = APIRouter(prefix="/sync", tags=["sync"])
@@ -101,3 +103,80 @@ def sync_time_accountings(
 ):
     ensure_sync_access(request, db, x_sync_token)
     return get_sync(db).sync_time_accounting()
+
+
+def _preview_payload(data, limit: int = 3):
+    if isinstance(data, list):
+        return {
+            "payload_type": "list",
+            "items_count": len(data),
+            "sample": data[:limit],
+        }
+    if isinstance(data, dict):
+        keys = list(data.keys())
+        sample = {}
+        for k in ["error", "message", "assets", "data", "time_accountings"]:
+            if k in data:
+                v = data[k]
+                if isinstance(v, list):
+                    sample[k] = v[:limit]
+                else:
+                    sample[k] = v
+        return {
+            "payload_type": "dict",
+            "keys": keys,
+            "sample": sample,
+        }
+    return {"payload_type": str(type(data)), "repr": str(data)[:1000]}
+
+
+@router.get("/debug/time-accountings")
+def debug_time_accountings(
+    request: Request,
+    limit: int = 3,
+    db: Session = Depends(get_db),
+    x_sync_token: str | None = Header(default=None),
+):
+    ensure_sync_access(request, db, x_sync_token)
+    sync = get_sync(db)
+    limit = max(1, min(limit, 10))
+
+    result = {
+        "global_endpoint": {},
+        "ticket_endpoints": [],
+    }
+
+    global_resp = requests.get(
+        f"{sync.base_url}/api/v1/time_accountings?page=1&per_page={limit}",
+        headers=sync.headers,
+    )
+    try:
+        global_json = global_resp.json()
+    except Exception:
+        global_json = {"raw_text": global_resp.text[:2000]}
+
+    result["global_endpoint"] = {
+        "status_code": global_resp.status_code,
+        "preview": _preview_payload(global_json, limit),
+    }
+
+    ticket_ids = [t[0] for t in db.query(Ticket.id).order_by(Ticket.id.desc()).limit(limit).all()]
+    for ticket_id in ticket_ids:
+        r = requests.get(
+            f"{sync.base_url}/api/v1/tickets/{ticket_id}/time_accountings",
+            headers=sync.headers,
+        )
+        try:
+            ticket_json = r.json()
+        except Exception:
+            ticket_json = {"raw_text": r.text[:2000]}
+
+        result["ticket_endpoints"].append(
+            {
+                "ticket_id": ticket_id,
+                "status_code": r.status_code,
+                "preview": _preview_payload(ticket_json, limit),
+            }
+        )
+
+    return result
