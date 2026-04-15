@@ -395,6 +395,54 @@ table th.center,
   width: 95px;
 }
 
+/* ===== Final FINAL override (forced last layer) ===== */
+body {
+  background: #eef2f6 !important;
+  color: #243447 !important;
+}
+
+.content-area {
+  background: #fff !important;
+  border: 1px solid #d4dbe4 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset !important;
+  padding: 22px 24px !important;
+}
+
+h1 {
+  color: #1f2f44 !important;
+  margin-bottom: 10px !important;
+  letter-spacing: -0.01em !important;
+}
+
+.report-description {
+  color: #5e738b !important;
+  margin-bottom: 16px !important;
+}
+
+.filter-bar,
+.table-wrapper,
+.report-wrapper {
+  background: #fff !important;
+  border: 1px solid #d4dbe4 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
+}
+
+button,
+a[role="button"],
+input[type="submit"],
+input[type="button"] {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%) !important;
+  border: 1px solid #c6d2e0 !important;
+  border-bottom-color: #a9bbcf !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 1px rgba(23, 42, 63, 0.08) !important;
+  color: #1f3650 !important;
+}
+
+.side-nav .menu-btn.active,
+.topbar .menu-toggle {
+  background: #2f7ed8 !important;
+}
+
 /* ===== Final override: Habr article based look ===== */
 body {
   background: #eef2f6;
