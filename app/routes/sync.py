@@ -91,3 +91,13 @@ def sync_tickets(
 ):
     ensure_sync_access(request, db, x_sync_token)
     return get_sync(db).sync_tickets()
+
+
+@router.post("/time-accountings")
+def sync_time_accountings(
+    request: Request,
+    db: Session = Depends(get_db),
+    x_sync_token: str | None = Header(default=None),
+):
+    ensure_sync_access(request, db, x_sync_token)
+    return get_sync(db).sync_time_accounting()

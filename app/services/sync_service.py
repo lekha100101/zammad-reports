@@ -244,9 +244,12 @@ class SyncService:
                 f"{self.base_url}/api/v1/time_accountings?page={page}&per_page={per_page}",
                 headers=self.headers
             )
+            r.raise_for_status()
             data = r.json()
 
             if isinstance(data, dict):
+                if data.get("error"):
+                    raise RuntimeError(f"time_accountings sync error: {data.get('error')}")
                 data = data.get("assets") or data.get("data") or data.get("time_accountings") or []
 
             if not isinstance(data, list) or not data:
