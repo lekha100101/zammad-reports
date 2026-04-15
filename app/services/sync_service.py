@@ -239,6 +239,25 @@ class SyncService:
         per_page = 100
         count = 0
 
+        def upsert_time_row(t, fallback_ticket_id=None):
+            nonlocal count
+            row_id = t.get("id")
+            if row_id is None:
+                return
+
+            obj = self.db.get(TimeAccounting, row_id)
+            if not obj:
+                obj = TimeAccounting(id=row_id)
+                self.db.add(obj)
+
+            obj.ticket_id = t.get("ticket_id") or fallback_ticket_id
+            obj.time_unit = t.get("time_unit")
+            obj.created_by_id = t.get("created_by_id")
+            obj.created_at = parse_dt(t.get("created_at"))
+            obj.updated_at = parse_dt(t.get("updated_at"))
+
+            count += 1
+
         while True:
             r = requests.get(
                 f"{self.base_url}/api/v1/time_accountings?page={page}&per_page={per_page}",
@@ -256,18 +275,7 @@ class SyncService:
                 break
 
             for t in data:
-                obj = self.db.get(TimeAccounting, t["id"])
-                if not obj:
-                    obj = TimeAccounting(id=t["id"])
-                    self.db.add(obj)
-
-                obj.ticket_id = t.get("ticket_id")
-                obj.time_unit = t.get("time_unit")
-                obj.created_by_id = t.get("created_by_id")
-                obj.created_at = parse_dt(t.get("created_at"))
-                obj.updated_at = parse_dt(t.get("updated_at"))
-
-                count += 1
+                upsert_time_row(t)
 
             self.db.commit()
 
@@ -275,6 +283,30 @@ class SyncService:
                 break
 
             page += 1
+
+        # fallback для инсталляций, где общий endpoint /time_accountings не возвращает записи
+        if count == 0:
+            ticket_ids = [t[0] for t in self.db.query(Ticket.id).all()]
+
+            for ticket_id in ticket_ids:
+                r = requests.get(
+                    f"{self.base_url}/api/v1/tickets/{ticket_id}/time_accountings",
+                    headers=self.headers,
+                )
+                if r.status_code == 404:
+                    continue
+
+                r.raise_for_status()
+                data = r.json()
+                if isinstance(data, dict):
+                    data = data.get("assets") or data.get("data") or data.get("time_accountings") or []
+                if not isinstance(data, list):
+                    continue
+
+                for t in data:
+                    upsert_time_row(t, fallback_ticket_id=ticket_id)
+
+            self.db.commit()
 
         self._log_finish(log, count)
         return count
