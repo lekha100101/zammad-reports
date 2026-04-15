@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>SLA: First response / Resolution</h1>
-<p class="report-description">Контроль выполнения SLA по первому ответу и закрытию: показывает долю тикетов, уложившихся в целевые нормативы.</p>
+<p class="report-description">Контроль выполнения SLA по первому ответу и закрытию: показывает долю тикетов, уложившихся в целевые нормативы (First response ≤ {{ sla_response_minutes }} мин, Resolution ≤ {{ sla_resolution_hours }} ч).</p>
 {% include "_filter.html" %}
 <div class="page-actions">
   <a role="button" href="/api/reports/sla/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>

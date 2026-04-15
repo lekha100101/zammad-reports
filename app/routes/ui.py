@@ -7,6 +7,7 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.auth import login_required_page
+from app.config import settings
 from app.deps import get_db
 from app.models import SyncLog, Ticket, TicketState
 from app.services.report_service import ReportService
@@ -178,7 +179,15 @@ def sla_report(
     rows = ReportService(db).sla_report(date_from, date_to)
     return templates.TemplateResponse(
         "sla_report.html",
-        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
+        {
+            "request": request,
+            "rows": rows,
+            "date_from": date_from,
+            "date_to": date_to,
+            "current_user": request.state.current_user,
+            "sla_response_minutes": settings.sla_response_minutes,
+            "sla_resolution_hours": settings.sla_resolution_hours,
+        },
     )
 
 
