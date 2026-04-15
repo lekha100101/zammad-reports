@@ -74,8 +74,6 @@ def get_report_data(report_name: str, db: Session, date_from=None, date_to=None)
     if report_name == "workload":
         data = service.workload_report(date_from, date_to)
         return data.get("agents", [])
-    if report_name == "time-accounting":
-        return service.time_accounting_report(date_from, date_to)
 
     raise HTTPException(status_code=404, detail="Unknown report")
 
