@@ -5,14 +5,14 @@
 <p class="report-description">Комплексная региональная сводка: поступило, закрыто, переходящие заявки, распределение по специалистам и средние времена реакции/закрытия.</p>
 {% include "_filter.html" %}
 <div class="page-actions">
-  <a role="button"
+  <a role="button" data-icon="fa-file-excel"
      href="/api/reports/regional-summary/export.xlsx{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
     Excel
   </a>
 </div>
 
 <div class="table-wrapper">
-  <table class="report-table compact-table regional-report-flat">
+  <table class="report-table compact-table regional-report-flat progress-table">
     <thead>
       <tr>
         <th class="center col-region">Регион</th>
@@ -23,6 +23,7 @@
         <th class="center col-count">Кол-во</th>
         <th class="center col-time">Среднее время закрытия</th>
         <th class="center col-time">Среднее время реагирования</th>
+        <th class="center col-time">Прогресс региона</th>
       </tr>
     </thead>
     <tbody>
@@ -41,6 +42,7 @@
 
           <td rowspan="{{ span }}" class="center">{{ row.avg_close_time }}</td>
           <td rowspan="{{ span }}" class="center">{{ row.avg_response_time }}</td>
+          <td rowspan="{{ span }}" class="progress-cell" data-progress-value="{{ row.closed_count }}"></td>
         </tr>
 
         {% for item in items[1:] %}
@@ -53,7 +55,7 @@
 
       {% if not rows %}
       <tr>
-        <td colspan="8" class="center empty-row">Нет данных за выбранный период</td>
+        <td colspan="9" class="center empty-row">Нет данных за выбранный период</td>
       </tr>
       {% endif %}
     </tbody>

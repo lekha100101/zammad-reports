@@ -1,13 +1,15 @@
 <form method="get" class="filter-bar js-filter-bar">
 
-<div class="filter-item">
-<label>Дата с</label>
-<input type="date" name="date_from" value="{{ date_from or '' }}">
-</div>
-
-<div class="filter-item">
-<label>Дата по</label>
-<input type="date" name="date_to" value="{{ date_to or '' }}">
+<div class="filter-item filter-item-range">
+<label>Период</label>
+<input
+  type="text"
+  class="js-date-range"
+  name="date_range_display"
+  value="{% if date_from and date_to %}{{ date_from }} - {{ date_to }}{% endif %}"
+  placeholder="Выберите период">
+<input type="hidden" name="date_from" value="{{ date_from or '' }}">
+<input type="hidden" name="date_to" value="{{ date_to or '' }}">
 </div>
 
 <button type="submit">

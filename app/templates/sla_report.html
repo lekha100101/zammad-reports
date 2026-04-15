@@ -4,10 +4,10 @@
 <p class="report-description">Контроль выполнения SLA по первому ответу и закрытию: показывает долю тикетов, уложившихся в целевые нормативы (First response ≤ {{ sla_response_minutes }} мин, Resolution ≤ {{ sla_resolution_hours }} ч).</p>
 {% include "_filter.html" %}
 <div class="page-actions">
-  <a role="button" href="/api/reports/sla/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+  <a role="button" data-icon="fa-file-excel" href="/api/reports/sla/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
 </div>
 <div class="table-wrapper">
-  <table class="compact-table">
+  <table class="compact-table progress-table">
     <thead>
       <tr>
         <th>Группа</th>
@@ -16,6 +16,7 @@
         <th>First response SLA %</th>
         <th>Resolution в SLA</th>
         <th>Resolution SLA %</th>
+        <th>Общий прогресс SLA</th>
       </tr>
     </thead>
     <tbody>
@@ -27,10 +28,11 @@
         <td class="center">{{ row.response_sla_pct }}%</td>
         <td class="center">{{ row.resolution_in_sla }}</td>
         <td class="center">{{ row.resolution_sla_pct }}%</td>
+        <td class="progress-cell" data-progress-value="{{ ((row.response_sla_pct + row.resolution_sla_pct) / 2)|round(2) }}"></td>
       </tr>
       {% endfor %}
       {% if not rows %}
-      <tr><td colspan="6" class="center empty-row">Нет данных</td></tr>
+      <tr><td colspan="7" class="center empty-row">Нет данных</td></tr>
       {% endif %}
     </tbody>
   </table>

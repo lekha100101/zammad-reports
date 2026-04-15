@@ -580,6 +580,49 @@ table th.center,
   border-color: #495c76;
 }
 
+.report-progress {
+  min-width: 140px;
+  height: 12px;
+}
+
+.report-progress .ui-progressbar-value {
+  background: linear-gradient(90deg, #2f8be6, #5ca8f3);
+  border: none;
+}
+
+.report-progress-text {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #304b66;
+}
+
+.progress-cell {
+  white-space: nowrap;
+}
+
+.js-date-range {
+  min-width: 250px;
+}
+
+.filter-item-range {
+  min-width: 280px;
+}
+
+.ui-dialog .ui-dialog-titlebar {
+  background: #2a3547;
+  color: #fff;
+  border: none;
+}
+
+.ui-dialog .ui-dialog-content {
+  background: #fff;
+}
+
+.ui-button i {
+  margin-right: 6px;
+}
+
 /* ===== Consolidated visual layer (single source of truth) ===== */
 :root {
   --ui-accent: #2f7ed8;

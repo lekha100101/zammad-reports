@@ -9,6 +9,71 @@
   const $densityToggle = $("#densityToggle");
   const mobileQuery = window.matchMedia("(max-width: 1100px)");
 
+  const initJqueryButtons = () => {
+    const guessIcon = (label) => {
+      const text = (label || "").toLowerCase();
+      if (text.includes("excel")) return "fa-file-excel";
+      if (text.includes("удал")) return "fa-trash";
+      if (text.includes("сохран")) return "fa-floppy-disk";
+      if (text.includes("созда")) return "fa-user-plus";
+      if (text.includes("синхрон")) return "fa-rotate";
+      if (text.includes("примен")) return "fa-filter";
+      if (text.includes("очист")) return "fa-eraser";
+      if (text.includes("выход")) return "fa-right-from-bracket";
+      return "fa-circle-dot";
+    };
+
+    $("button, input[type='submit'], input[type='button'], a[role='button']").each((_, element) => {
+      const $el = $(element);
+      const icon = $el.data("icon") || guessIcon($el.text());
+      if (icon && $el.find("i").length === 0) {
+        $el.prepend(`<i class="fa-solid ${icon}" aria-hidden="true"></i> `);
+      }
+      if ($el.is("a")) {
+        $el.addClass("ui-button ui-corner-all ui-widget");
+      } else if ($.fn.button) {
+        $el.button();
+      }
+    });
+  };
+
+  const initCreateUserDialog = () => {
+    const $dialog = $("#createUserDialog");
+    const $open = $("#openCreateUserDialog");
+    if (!$dialog.length || !$open.length || !$.fn.dialog) return;
+
+    $dialog.dialog({
+      autoOpen: false,
+      modal: true,
+      width: 540,
+      draggable: false,
+      resizable: false,
+    });
+
+    $open.on("click", () => $dialog.dialog("open"));
+  };
+
+  const initProgressTables = () => {
+    $(".progress-table").each((_, tableEl) => {
+      const $table = $(tableEl);
+      const $cells = $table.find(".progress-cell");
+      if (!$cells.length || !$.fn.progressbar) return;
+
+      const values = $cells
+        .map((_, cell) => Number.parseFloat($(cell).data("progress-value")) || 0)
+        .get();
+      const max = Math.max(...values, 1);
+
+      $cells.each((idx, cell) => {
+        const $cell = $(cell);
+        const value = values[idx];
+        const percent = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+        $cell.html(`<div class="report-progress"></div><span class="report-progress-text">${percent}%</span>`);
+        $cell.find(".report-progress").progressbar({ value: percent });
+      });
+    });
+  };
+
   const syncMenuState = () => {
     const mobile = mobileQuery.matches;
     const open = $body.hasClass("menu-open");
@@ -77,36 +142,60 @@
 
   $(".js-filter-bar").each((_, formEl) => {
     const $form = $(formEl);
+    const $range = $form.find(".js-date-range");
     const $from = $form.find('input[name="date_from"]');
     const $to = $form.find('input[name="date_to"]');
     const $status = $form.find("[data-filter-status]");
-    if (!$from.length || !$to.length) return;
+    if (!$range.length || !$from.length || !$to.length || !window.moment || !$.fn.daterangepicker) return;
 
-    const fmt = (date) => date.toISOString().slice(0, 10);
+    const fmt = (date) => date.format("YYYY-MM-DD");
+    const setRange = (start, end) => {
+      $from.val(fmt(start));
+      $to.val(fmt(end));
+      $range.val(`${fmt(start)} - ${fmt(end)}`);
+    };
     const setStatus = () => {
       const from = $from.val();
       const to = $to.val();
-      if (from && to) {
-        $status.text(`Период: ${from} → ${to}`);
-      } else if (from || to) {
-        $status.text(`Период задан частично`);
-      } else {
-        $status.text("Период не выбран");
-      }
+      if (from && to) $status.text(`Период: ${from} → ${to}`);
+      else if (from || to) $status.text("Период задан частично");
+      else $status.text("Период не выбран");
     };
+
+    const startInit = $from.val() ? window.moment($from.val()) : window.moment().startOf("month");
+    const endInit = $to.val() ? window.moment($to.val()) : window.moment();
+
+    $range.daterangepicker(
+      {
+        autoUpdateInput: true,
+        locale: { format: "YYYY-MM-DD", separator: " - " },
+        startDate: startInit,
+        endDate: endInit,
+        ranges: {
+          Сегодня: [window.moment(), window.moment()],
+          "7 дней": [window.moment().subtract(6, "days"), window.moment()],
+          "30 дней": [window.moment().subtract(29, "days"), window.moment()],
+          "Этот месяц": [window.moment().startOf("month"), window.moment()],
+        },
+      },
+      (start, end) => {
+        setRange(start, end);
+        setStatus();
+      },
+    );
+    setRange(startInit, endInit);
 
     $form.find("[data-range]").on("click", function () {
       const range = $(this).data("range");
-      const now = new Date();
-      let from = new Date(now);
-      const to = new Date(now);
+      const now = window.moment();
+      let from = window.moment(now);
+      const to = window.moment(now);
 
-      if (range === "7d") from.setDate(now.getDate() - 6);
-      if (range === "30d") from.setDate(now.getDate() - 29);
-      if (range === "month") from = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (range === "7d") from = now.clone().subtract(6, "days");
+      if (range === "30d") from = now.clone().subtract(29, "days");
+      if (range === "month") from = now.clone().startOf("month");
 
-      $from.val(fmt(from));
-      $to.val(fmt(to));
+      setRange(from, to);
       setStatus();
       $form.trigger("submit");
     });
@@ -114,6 +203,7 @@
     $form.find('[data-action="clear-dates"]').on("click", () => {
       $from.val("");
       $to.val("");
+      $range.val("");
       setStatus();
     });
 
@@ -121,4 +211,8 @@
     $to.on("change", setStatus);
     setStatus();
   });
+
+  initJqueryButtons();
+  initCreateUserDialog();
+  initProgressTables();
 })();
