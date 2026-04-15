@@ -13,4 +13,54 @@
 <button type="submit">
 Применить
 </button>
+
+<div class="filter-presets">
+  <button type="button" class="secondary btn-small" data-range="today">Сегодня</button>
+  <button type="button" class="secondary btn-small" data-range="7d">7 дней</button>
+  <button type="button" class="secondary btn-small" data-range="30d">30 дней</button>
+  <button type="button" class="secondary btn-small" data-range="month">Этот месяц</button>
+</div>
 </form>
+
+<script>
+  (function () {
+    const form = document.currentScript?.previousElementSibling;
+    if (!form || !form.classList.contains('filter-bar')) return;
+
+    const fromInput = form.querySelector('input[name="date_from"]');
+    const toInput = form.querySelector('input[name="date_to"]');
+    const presetBtns = form.querySelectorAll('[data-range]');
+    if (!fromInput || !toInput || presetBtns.length === 0) return;
+
+    const fmt = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const applyRange = (range) => {
+      const now = new Date();
+      let from = new Date(now);
+      let to = new Date(now);
+
+      if (range === 'today') {
+        // from/to already today
+      } else if (range === '7d') {
+        from.setDate(now.getDate() - 6);
+      } else if (range === '30d') {
+        from.setDate(now.getDate() - 29);
+      } else if (range === 'month') {
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      fromInput.value = fmt(from);
+      toInput.value = fmt(to);
+      form.submit();
+    };
+
+    presetBtns.forEach((btn) => {
+      btn.addEventListener('click', () => applyRange(btn.dataset.range));
+    });
+  })();
+</script>

@@ -654,6 +654,18 @@ td.nested,
   margin-top: 0;
 }
 
+.filter-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.filter-presets .btn-small {
+  min-height: 30px !important;
+  height: 30px !important;
+}
+
 .page-actions {
   display: flex;
   align-items: center;
