@@ -134,16 +134,24 @@ def _preview_payload(data, limit: int = 3):
 def debug_time_accountings(
     request: Request,
     limit: int = 3,
+    scan_tickets: int = 200,
     db: Session = Depends(get_db),
     x_sync_token: str | None = Header(default=None),
 ):
     ensure_sync_access(request, db, x_sync_token)
     sync = get_sync(db)
     limit = max(1, min(limit, 10))
+    scan_tickets = max(1, min(scan_tickets, 2000))
 
     result = {
         "global_endpoint": {},
-        "ticket_endpoints": [],
+        "ticket_endpoints_sample": [],
+        "ticket_scan_summary": {
+            "scanned": 0,
+            "non_empty": 0,
+            "empty": 0,
+            "first_non_empty_samples": [],
+        },
     }
 
     global_resp = requests.get(
@@ -160,7 +168,7 @@ def debug_time_accountings(
         "preview": _preview_payload(global_json, limit),
     }
 
-    ticket_ids = [t[0] for t in db.query(Ticket.id).order_by(Ticket.id.desc()).limit(limit).all()]
+    ticket_ids = [t[0] for t in db.query(Ticket.id).order_by(Ticket.id.desc()).limit(scan_tickets).all()]
     for ticket_id in ticket_ids:
         r = requests.get(
             f"{sync.base_url}/api/v1/tickets/{ticket_id}/time_accountings",
@@ -171,12 +179,30 @@ def debug_time_accountings(
         except Exception:
             ticket_json = {"raw_text": r.text[:2000]}
 
-        result["ticket_endpoints"].append(
-            {
-                "ticket_id": ticket_id,
-                "status_code": r.status_code,
-                "preview": _preview_payload(ticket_json, limit),
-            }
-        )
+        preview = _preview_payload(ticket_json, limit)
+        items_count = preview.get("items_count", 0) if preview.get("payload_type") == "list" else 0
+
+        result["ticket_scan_summary"]["scanned"] += 1
+        if items_count > 0:
+            result["ticket_scan_summary"]["non_empty"] += 1
+            if len(result["ticket_scan_summary"]["first_non_empty_samples"]) < limit:
+                result["ticket_scan_summary"]["first_non_empty_samples"].append(
+                    {
+                        "ticket_id": ticket_id,
+                        "status_code": r.status_code,
+                        "preview": preview,
+                    }
+                )
+        else:
+            result["ticket_scan_summary"]["empty"] += 1
+
+        if len(result["ticket_endpoints_sample"]) < limit:
+            result["ticket_endpoints_sample"].append(
+                {
+                    "ticket_id": ticket_id,
+                    "status_code": r.status_code,
+                    "preview": preview,
+                }
+            )
 
     return result
