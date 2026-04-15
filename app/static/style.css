@@ -395,6 +395,134 @@ table th.center,
   width: 95px;
 }
 
+/* ===== Final override: Habr article based look ===== */
+body {
+  background: #eef2f6;
+  color: #243447;
+}
+
+.content-area {
+  background: #fff;
+  border: 1px solid #d4dbe4;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  padding: 22px 24px;
+}
+
+h1 {
+  color: #1f2f44;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.report-description {
+  color: #5e738b;
+  margin-bottom: 16px;
+  max-width: 980px;
+}
+
+.filter-bar,
+.table-wrapper,
+.report-wrapper {
+  background: #fff;
+  border: 1px solid #d4dbe4;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+button,
+a[role="button"],
+input[type="submit"],
+input[type="button"] {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%) !important;
+  border: 1px solid #c6d2e0 !important;
+  border-bottom-color: #a9bbcf !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 1px rgba(23, 42, 63, 0.08) !important;
+  color: #1f3650 !important;
+}
+
+.side-nav .menu-btn.active,
+.topbar .menu-toggle {
+  background: #2f7ed8 !important;
+}
+
+/* ===== Habr UI polish (7 правил: больше воздуха, монохром + 1 акцент, свет сверху) ===== */
+
+:root {
+  --ui-accent: #2f7ed8;
+  --ui-text: #243447;
+  --ui-muted: #5e738b;
+  --ui-bg: #eef2f6;
+  --ui-surface: #ffffff;
+  --ui-border: #d4dbe4;
+}
+
+body {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+.content-area {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  padding: 22px 24px;
+}
+
+h1 {
+  color: #1f2f44;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.report-description {
+  color: var(--ui-muted);
+  margin-bottom: 16px;
+  max-width: 980px;
+}
+
+.filter-bar,
+.table-wrapper,
+.report-wrapper {
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.filter-item label {
+  color: #3c4f66;
+  margin-bottom: 2px;
+}
+
+/* свет сверху: лёгкая выпуклость кнопок */
+button,
+a[role="button"],
+input[type="submit"],
+input[type="button"] {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%) !important;
+  border: 1px solid #c6d2e0 !important;
+  border-bottom-color: #a9bbcf !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 1px rgba(23, 42, 63, 0.08) !important;
+  color: #1f3650 !important;
+}
+
+button:hover,
+a[role="button"]:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #e8f0f8 100%) !important;
+  border-color: #9eb6d0 !important;
+}
+
+.side-nav .menu-btn.active,
+.topbar .menu-toggle {
+  background: var(--ui-accent) !important;
+}
+
+table thead th {
+  background: #edf2f8;
+  color: #24374d;
+  font-weight: 700;
+}
+
 /* ===== Zabbix v7-like theme override ===== */
 
 :root {
