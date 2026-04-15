@@ -425,6 +425,161 @@ table th.center,
   width: 95px;
 }
 
+/* ===== Zammad-like visual skin (final override layer) ===== */
+.zammad-skin {
+  --zbx-bg: #edf1f5;
+  --zbx-surface: #ffffff;
+  --zbx-border: #d7dee7;
+  --zbx-text: #2e3b4e;
+  --zbx-muted: #60758d;
+  --zbx-topbar: #2a3547;
+  --zbx-sidebar: #2f3a4d;
+  --zbx-sidebar-hover: #38465c;
+  --zbx-sidebar-active: #2474c9;
+  --zbx-accent: #2474c9;
+  background: var(--zbx-bg);
+  color: var(--zbx-text);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.zammad-skin .topbar {
+  background: var(--zbx-topbar);
+  border-bottom: 1px solid #1f2a39;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  min-height: 56px;
+}
+
+.zammad-skin .brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.zammad-skin .brand-subtitle {
+  color: #b9c9db;
+}
+
+.zammad-skin .layout-shell {
+  gap: 12px;
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.zammad-skin .left-sidebar {
+  top: 10px;
+}
+
+.zammad-skin .side-nav {
+  background: var(--zbx-sidebar);
+  border: 1px solid #263246;
+  border-radius: 3px;
+  padding: 6px 0;
+}
+
+.zammad-skin .side-nav .menu-btn {
+  border-left: 4px solid transparent !important;
+  color: #dfe8f3 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 12px 14px !important;
+}
+
+.zammad-skin .side-nav .menu-btn:hover {
+  background: var(--zbx-sidebar-hover) !important;
+}
+
+.zammad-skin .side-nav .menu-btn.active {
+  background: var(--zbx-sidebar-active) !important;
+  border-left-color: #92c0f3 !important;
+  color: #fff !important;
+}
+
+.zammad-skin .content-area {
+  background: var(--zbx-surface);
+  border: 1px solid var(--zbx-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+  padding: 18px 20px;
+}
+
+.zammad-skin h1 {
+  color: #24374d;
+  font-size: 30px;
+  margin-bottom: 12px;
+}
+
+.zammad-skin .report-description {
+  color: var(--zbx-muted);
+  margin-bottom: 14px;
+}
+
+.zammad-skin .filter-bar {
+  background: #f7f9fc;
+  border: 1px solid var(--zbx-border);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.zammad-skin .table-wrapper,
+.zammad-skin .report-wrapper {
+  border: 1px solid var(--zbx-border);
+  border-radius: 3px;
+  background: #fff;
+}
+
+.zammad-skin table thead th {
+  background: #eef3f8;
+  color: #1f364d;
+  border-color: #cad6e3;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.zammad-skin table td {
+  border-color: #d7dfe8;
+}
+
+.zammad-skin table tbody tr:nth-child(2n) {
+  background: #fafcfe;
+}
+
+.zammad-skin table tbody tr:hover {
+  background: #edf4fc;
+}
+
+.zammad-skin button,
+.zammad-skin input[type="submit"],
+.zammad-skin input[type="button"],
+.zammad-skin a[role="button"] {
+  border-radius: 3px !important;
+  border: 1px solid #bdcad9 !important;
+  background: linear-gradient(180deg, #fff 0%, #eef3f8 100%) !important;
+  color: #27425d !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset !important;
+}
+
+.zammad-skin button:hover,
+.zammad-skin input[type="submit"]:hover,
+.zammad-skin input[type="button"]:hover,
+.zammad-skin a[role="button"]:hover {
+  background: linear-gradient(180deg, #fff 0%, #e5eef8 100%) !important;
+  border-color: #9fb5cc !important;
+}
+
+.zammad-skin .logout-btn,
+.zammad-skin .side-nav .menu-btn.active,
+.zammad-skin .topbar .menu-toggle {
+  background: var(--zbx-accent) !important;
+  border-color: var(--zbx-accent) !important;
+  color: #fff !important;
+}
+
+.zammad-skin .user-badge {
+  background: #3a4a61 !important;
+  border-color: #495c76;
+}
+
 /* ===== Consolidated visual layer (single source of truth) ===== */
 :root {
   --ui-accent: #2f7ed8;
