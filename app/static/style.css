@@ -395,105 +395,7 @@ table th.center,
   width: 95px;
 }
 
-/* ===== Final FINAL override (forced last layer) ===== */
-body {
-  background: #eef2f6 !important;
-  color: #243447 !important;
-}
-
-.content-area {
-  background: #fff !important;
-  border: 1px solid #d4dbe4 !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset !important;
-  padding: 22px 24px !important;
-}
-
-h1 {
-  color: #1f2f44 !important;
-  margin-bottom: 10px !important;
-  letter-spacing: -0.01em !important;
-}
-
-.report-description {
-  color: #5e738b !important;
-  margin-bottom: 16px !important;
-}
-
-.filter-bar,
-.table-wrapper,
-.report-wrapper {
-  background: #fff !important;
-  border: 1px solid #d4dbe4 !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
-}
-
-button,
-a[role="button"],
-input[type="submit"],
-input[type="button"] {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%) !important;
-  border: 1px solid #c6d2e0 !important;
-  border-bottom-color: #a9bbcf !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 1px rgba(23, 42, 63, 0.08) !important;
-  color: #1f3650 !important;
-}
-
-.side-nav .menu-btn.active,
-.topbar .menu-toggle {
-  background: #2f7ed8 !important;
-}
-
-/* ===== Final override: Habr article based look ===== */
-body {
-  background: #eef2f6;
-  color: #243447;
-}
-
-.content-area {
-  background: #fff;
-  border: 1px solid #d4dbe4;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
-  padding: 22px 24px;
-}
-
-h1 {
-  color: #1f2f44;
-  margin-bottom: 10px;
-  letter-spacing: -0.01em;
-}
-
-.report-description {
-  color: #5e738b;
-  margin-bottom: 16px;
-  max-width: 980px;
-}
-
-.filter-bar,
-.table-wrapper,
-.report-wrapper {
-  background: #fff;
-  border: 1px solid #d4dbe4;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
-}
-
-button,
-a[role="button"],
-input[type="submit"],
-input[type="button"] {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%) !important;
-  border: 1px solid #c6d2e0 !important;
-  border-bottom-color: #a9bbcf !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 1px rgba(23, 42, 63, 0.08) !important;
-  color: #1f3650 !important;
-}
-
-.side-nav .menu-btn.active,
-.topbar .menu-toggle {
-  background: #2f7ed8 !important;
-}
-
-/* ===== Habr UI polish (7 правил: больше воздуха, монохром + 1 акцент, свет сверху) ===== */
-
+/* ===== Consolidated visual layer (single source of truth) ===== */
 :root {
   --ui-accent: #2f7ed8;
   --ui-text: #243447;
@@ -506,12 +408,58 @@ input[type="button"] {
 body {
   background: var(--ui-bg);
   color: var(--ui-text);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.topbar {
+  background: #263445;
+  border-bottom: 1px solid #1f2937;
+  box-shadow: none;
+  min-height: 56px;
+}
+
+.main-container {
+  max-width: 1820px;
+}
+
+.layout-shell {
+  gap: 10px;
+  grid-template-columns: 230px minmax(0, 1fr);
+}
+
+.left-sidebar {
+  top: 6px;
+}
+
+.side-nav {
+  background: #2b3648;
+  border: 1px solid #263246;
+  border-radius: 3px;
+  padding: 6px 0;
+}
+
+.side-nav .menu-btn {
+  border-left: 4px solid transparent !important;
+  color: #e7edf6 !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  padding: 12px 14px !important;
+}
+
+.side-nav .menu-btn:hover {
+  background: #364359 !important;
+}
+
+.side-nav .menu-btn.active,
+.topbar .menu-toggle {
+  background: var(--ui-accent) !important;
 }
 
 .content-area {
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  border-radius: 2px;
   padding: 22px 24px;
 }
 
@@ -535,12 +483,6 @@ h1 {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 
-.filter-item label {
-  color: #3c4f66;
-  margin-bottom: 2px;
-}
-
-/* свет сверху: лёгкая выпуклость кнопок */
 button,
 a[role="button"],
 input[type="submit"],
@@ -560,128 +502,11 @@ input[type="button"]:hover {
   border-color: #9eb6d0 !important;
 }
 
-.side-nav .menu-btn.active,
-.topbar .menu-toggle {
-  background: var(--ui-accent) !important;
-}
-
-table thead th {
-  background: #edf2f8;
-  color: #24374d;
-  font-weight: 700;
-}
-
-/* ===== Zabbix v7-like theme override ===== */
-
-:root {
-  --zbx-bg: #edf1f5;
-  --zbx-header: #263445;
-  --zbx-sidebar: #2b3648;
-  --zbx-sidebar-hover: #364359;
-  --zbx-sidebar-active: #2474c9;
-  --zbx-card: #ffffff;
-  --zbx-border: #d7dee7;
-  --zbx-text: #2c3b4d;
-}
-
-body {
-  background: var(--zbx-bg);
-  color: var(--zbx-text);
-  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-}
-
-.topbar {
-  background: var(--zbx-header);
-  border-bottom: 1px solid #1f2937;
-  box-shadow: none;
-  min-height: 56px;
-}
-
-.main-container {
-  max-width: 1820px;
-}
-
-.layout-shell {
-  gap: 10px;
-  grid-template-columns: 230px minmax(0, 1fr);
-}
-
-.left-sidebar {
-  top: 6px;
-}
-
-.side-nav {
-  background: var(--zbx-sidebar);
-  border: 1px solid #263246;
-  border-radius: 3px;
-  padding: 6px 0;
-}
-
-.side-nav .menu-btn {
-  border-left: 4px solid transparent !important;
-  color: #e7edf6 !important;
-  font-size: 16px !important;
-  font-weight: 500 !important;
-  padding: 12px 14px !important;
-}
-
-.side-nav .menu-btn:hover {
-  background: var(--zbx-sidebar-hover) !important;
-}
-
-.side-nav .menu-btn.active {
-  background: var(--zbx-sidebar-active) !important;
-  border-left-color: #9ec8ff !important;
-}
-
-.content-area {
-  background: var(--zbx-card);
-  border: 1px solid var(--zbx-border);
-  border-radius: 2px;
-  padding: 16px;
-}
-
-h1 {
-  font-size: 28px;
-  color: #23364a;
-  margin-bottom: 16px;
-}
-
-.filter-bar,
-.table-wrapper,
-.report-wrapper {
-  border-color: var(--zbx-border);
-  border-radius: 3px;
-}
-
 table thead th {
   background: #eef3f8;
   color: #21364b;
   font-size: 12px;
-}
-
-.topbar .menu-toggle {
-  background: transparent !important;
-  border: 1px solid #4b5e78 !important;
-  color: #dbe7f4 !important;
-}
-
-.user-badge {
-  background: #314156 !important;
-  border-color: #43566f !important;
-}
-
-.logout-btn {
-  background: #d0442f !important;
-  border-color: #d0442f !important;
-}
-
-button,
-a[role="button"],
-input[type="submit"] {
-  border-radius: 2px !important;
-  background: #f5f7fa !important;
-  border-color: #c8d3e1 !important;
+  font-weight: 700;
 }
 
 /* ===== Вложенная таблица исполнителей ===== */
