@@ -86,10 +86,11 @@ class ReportService:
     def tickets_by_group(self, date_from=None, date_to=None):
         query = (
             self.db.query(
-                Group.name,
+                func.coalesce(ReportRegion.name, Group.name).label("group_name"),
                 func.count(Ticket.id)
             )
             .join(Ticket, Ticket.group_id == Group.id)
+            .outerjoin(ReportRegion, ReportRegion.group_id == Group.id)
         )
 
         dt_from = self._parse_date_start(date_from)
@@ -100,7 +101,7 @@ class ReportService:
         if dt_to:
             query = query.filter(Ticket.created_at < dt_to)
 
-        rows = query.group_by(Group.name).all()
+        rows = query.group_by(func.coalesce(ReportRegion.name, Group.name)).all()
 
         return [
             {"group": r[0], "count": r[1]}
