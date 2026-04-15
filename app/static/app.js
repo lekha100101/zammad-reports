@@ -74,6 +74,49 @@
     });
   };
 
+  const initDataTables = () => {
+    if (!$.fn.DataTable) return;
+
+    $("table.compact-table")
+      .not(".regional-report-flat")
+      .not(".exec-table")
+      .each((_, tableEl) => {
+        const $table = $(tableEl);
+        if ($.fn.dataTable.isDataTable(tableEl)) return;
+
+        const hasProgress = $table.hasClass("progress-table");
+        const noRows = $table.find("tbody tr").length === 0;
+        const totalColumns = $table.find("thead th").length;
+
+        $table.DataTable({
+          paging: true,
+          searching: true,
+          info: true,
+          lengthMenu: [10, 25, 50, 100],
+          pageLength: 25,
+          autoWidth: false,
+          order: [],
+          language: {
+            search: "Поиск:",
+            lengthMenu: "Показывать _MENU_ строк",
+            info: "Показано _START_–_END_ из _TOTAL_",
+            infoEmpty: "Нет данных",
+            zeroRecords: "Ничего не найдено",
+            paginate: { previous: "Назад", next: "Вперед" },
+          },
+          columnDefs: hasProgress
+            ? [{ targets: totalColumns - 1, orderable: false, searchable: false }]
+            : [],
+          dom: "ftip",
+        });
+
+        if (noRows) {
+          $table.closest(".dataTables_wrapper").find(".dataTables_filter").hide();
+          $table.closest(".dataTables_wrapper").find(".dataTables_paginate").hide();
+        }
+      });
+  };
+
   const syncMenuState = () => {
     const mobile = mobileQuery.matches;
     const open = $body.hasClass("menu-open");
@@ -215,4 +258,5 @@
   initJqueryButtons();
   initCreateUserDialog();
   initProgressTables();
+  initDataTables();
 })();

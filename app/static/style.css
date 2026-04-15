@@ -623,6 +623,24 @@ table th.center,
   margin-right: 6px;
 }
 
+.dataTables_wrapper {
+  padding: 8px 10px;
+}
+
+.dataTables_wrapper .dataTables_filter {
+  margin-bottom: 8px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  min-height: 32px;
+  padding: 4px 8px;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  min-height: 32px;
+  padding: 2px 6px;
+}
+
 /* ===== Consolidated visual layer (single source of truth) ===== */
 :root {
   --ui-accent: #2f7ed8;
