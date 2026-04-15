@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Трудозатраты по исполнителям</h1>
+<p class="report-description">Показывает суммарное время, затраченное каждым исполнителем за период, для контроля эффективности и загрузки команды.</p>
 {% include "_filter.html" %}
 <div class="page-actions">
   <a role="button" href="/api/reports/time/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>

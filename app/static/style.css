@@ -353,6 +353,13 @@ table th.center,
   margin: 8px 0;
 }
 
+.report-description {
+  margin: 0 0 12px;
+  color: #4a5f77;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
 .region-cell {
   font-weight: 600;
   word-break: break-word;

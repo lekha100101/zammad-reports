@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Time accounting report</h1>
+<p class="report-description">Отчет по трудозатратам: агрегирует списанное время по исполнителям и региональным группам за выбранный период.</p>
 {% include "_filter.html" %}
 <div class="page-actions">
   <a role="button" href="/api/reports/time-accounting/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
