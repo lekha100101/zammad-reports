@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>SLA: First response / Resolution</h1>
-<p class="report-description">Контроль выполнения SLA по первому ответу и закрытию: показывает долю тикетов, уложившихся в целевые нормативы (First response ≤ {{ sla_response_minutes }} мин, Resolution ≤ {{ sla_resolution_hours }} ч).</p>
+<p class="report-description">Контроль выполнения SLA по первому ответу и закрытию: показывает долю тикетов, уложившихся в целевые нормативы (First response ≤ {{ sla_response_minutes }} мин, Resolution ≤ {{ sla_resolution_hours }} ч). Прогресс в колонке «Группа» = среднее между First response SLA % и Resolution SLA %.</p>
 {% include "_filter.html" %}
 <div class="page-actions">
   <a role="button" data-icon="fa-file-excel" href="/api/reports/sla/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
 </div>
 <div class="table-wrapper">
-  <table class="compact-table progress-table">
+  <table class="compact-table">
     <thead>
       <tr>
         <th>Группа</th>
@@ -16,23 +16,21 @@
         <th>First response SLA %</th>
         <th>Resolution в SLA</th>
         <th>Resolution SLA %</th>
-        <th>Общий прогресс SLA</th>
       </tr>
     </thead>
     <tbody>
       {% for row in rows %}
       <tr>
-        <td>{{ row.group }}</td>
+        <td class="inline-progress-cell" data-progress-value="{{ ((row.response_sla_pct + row.resolution_sla_pct) / 2)|round(2) }}">{{ row.group }}</td>
         <td class="center">{{ row.total }}</td>
         <td class="center">{{ row.response_in_sla }}</td>
         <td class="center">{{ row.response_sla_pct }}%</td>
         <td class="center">{{ row.resolution_in_sla }}</td>
         <td class="center">{{ row.resolution_sla_pct }}%</td>
-        <td class="progress-cell" data-progress-value="{{ ((row.response_sla_pct + row.resolution_sla_pct) / 2)|round(2) }}"></td>
       </tr>
       {% endfor %}
       {% if not rows %}
-      <tr><td colspan="7" class="center empty-row">Нет данных</td></tr>
+      <tr><td colspan="6" class="center empty-row">Нет данных</td></tr>
       {% endif %}
     </tbody>
   </table>

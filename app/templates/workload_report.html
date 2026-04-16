@@ -9,19 +9,18 @@
 
 <h3>Нагрузка по исполнителям (открытые тикеты)</h3>
 <div class="table-wrapper">
-  <table class="compact-table progress-table">
-    <thead><tr><th>Исполнитель</th><th>Открытые тикеты</th><th>Средний возраст</th><th>Прогресс нагрузки</th></tr></thead>
+  <table class="compact-table">
+    <thead><tr><th>Исполнитель</th><th>Открытые тикеты</th><th>Средний возраст</th></tr></thead>
     <tbody>
       {% for row in agent_rows %}
       <tr>
         <td>{{ row.agent }}</td>
         <td class="center">{{ row.open_count }}</td>
         <td class="center">{{ row.avg_age }}</td>
-        <td class="progress-cell" data-progress-value="{{ row.open_count }}"></td>
       </tr>
       {% endfor %}
       {% if not agent_rows %}
-      <tr><td colspan="4" class="center empty-row">Нет данных</td></tr>
+      <tr><td colspan="3" class="center empty-row">Нет данных</td></tr>
       {% endif %}
     </tbody>
   </table>
@@ -29,21 +28,24 @@
 
 <h3 style="margin-top: 14px;">Backlog trend (по дням)</h3>
 <div class="table-wrapper">
-  <table class="compact-table progress-table">
-    <thead><tr><th>Дата</th><th>Создано</th><th>Закрыто</th><th>Δ за день</th><th>Backlog тренд</th><th>Прогресс backlog</th></tr></thead>
+  <table class="compact-table">
+    <thead><tr><th>Дата</th><th>Создано</th><th>Закрыто</th><th>Δ за день</th><th>Backlog тренд</th></tr></thead>
     <tbody>
+      {% if trend_rows %}
+      {% set max_created = trend_rows|map(attribute='created')|max %}
+      {% set min_created = trend_rows|map(attribute='created')|min %}
+      {% endif %}
       {% for row in trend_rows %}
-      <tr>
+      <tr class="{% if row.created == max_created %}workload-max{% elif row.created == min_created %}workload-min{% endif %}">
         <td>{{ row.day }}</td>
         <td class="center">{{ row.created }}</td>
         <td class="center">{{ row.closed }}</td>
         <td class="center">{{ row.delta }}</td>
         <td class="center">{{ row.backlog_trend }}</td>
-        <td class="progress-cell" data-progress-value="{{ row.backlog_trend }}"></td>
       </tr>
       {% endfor %}
       {% if not trend_rows %}
-      <tr><td colspan="6" class="center empty-row">Нет данных</td></tr>
+      <tr><td colspan="5" class="center empty-row">Нет данных</td></tr>
       {% endif %}
     </tbody>
   </table>

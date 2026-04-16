@@ -57,23 +57,27 @@
   };
 
   const initProgressTables = () => {
-    $(".progress-table").each((_, tableEl) => {
-      const $table = $(tableEl);
-      const $cells = $table.find(".progress-cell");
-      if (!$cells.length || !$.fn.progressbar) return;
+    const $cells = $(".inline-progress-cell");
+    if (!$cells.length) return;
 
-      const values = $cells
-        .map((_, cell) => Number.parseFloat($(cell).data("progress-value")) || 0)
-        .get();
-      const max = Math.max(...values, 1);
+    const values = $cells
+      .map((_, cell) => Number.parseFloat($(cell).data("progress-value")) || 0)
+      .get();
+    const max = Math.max(...values, 1);
 
-      $cells.each((idx, cell) => {
-        const $cell = $(cell);
-        const value = values[idx];
-        const percent = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
-        $cell.html(`<div class="report-progress"></div><span class="report-progress-text">${percent}%</span>`);
-        $cell.find(".report-progress").progressbar({ value: percent });
-      });
+    $cells.each((idx, cell) => {
+      const $cell = $(cell);
+      const value = values[idx];
+      const percent = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+      const hue = Math.round((percent / 100) * 120);
+      const baseColor = `hsl(${hue}, 70%, 82%)`;
+      const text = $cell.text().trim();
+
+      $cell
+        .addClass("inline-progress-ready")
+        .css("background", `linear-gradient(90deg, ${baseColor} ${percent}%, transparent ${percent}%)`)
+        .attr("title", `Прогресс: ${percent}%`)
+        .html(`<span class=\"inline-progress-text\">${text}</span>`);
     });
   };
 
@@ -87,9 +91,7 @@
         const $table = $(tableEl);
         if ($.fn.dataTable.isDataTable(tableEl)) return;
 
-        const hasProgress = $table.hasClass("progress-table");
         const noRows = $table.find("tbody tr").length === 0;
-        const totalColumns = $table.find("thead th").length;
 
         $table.DataTable({
           paging: true,
@@ -107,9 +109,7 @@
             zeroRecords: "Ничего не найдено",
             paginate: { previous: "Назад", next: "Вперед" },
           },
-          columnDefs: hasProgress
-            ? [{ targets: totalColumns - 1, orderable: false, searchable: false }]
-            : [],
+          columnDefs: [],
           dom: "ftip",
         });
 

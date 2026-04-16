@@ -7,11 +7,11 @@
   <a role="button" data-icon="fa-file-excel" href="/api/reports/organizations/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
 </div>
 <div class="table-wrapper">
-  <table class="compact-table progress-table">
-    <thead><tr><th>Организация</th><th>Количество</th><th>Прогресс</th></tr></thead>
+  <table class="compact-table">
+    <thead><tr><th>Организация</th><th>Количество</th></tr></thead>
     <tbody>
       {% for row in rows %}
-      <tr><td>{{ row.organization }}</td><td>{{ row.count }}</td><td class="progress-cell" data-progress-value="{{ row.count }}"></td></tr>
+      <tr><td>{{ row.organization }}</td><td>{{ row.count }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
