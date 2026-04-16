@@ -47,6 +47,8 @@ def update_app_settings(db: Session, payload: dict[str, str]) -> None:
                 value = APP_SETTING_DEFAULTS[key]
 
         row = db.query(AppSetting).filter(AppSetting.key == key).first()
+        if key == "zammad_token" and value == "" and row is not None:
+            continue
         if row is None:
             row = AppSetting(key=key, value=value, updated_at=datetime.utcnow())
             db.add(row)
