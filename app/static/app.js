@@ -6,7 +6,6 @@
   const $toggle = $("#menuToggle");
   const $sideNav = $("#sideNav");
   const $overlay = $("#menuOverlay");
-  const $densityToggle = $("#densityToggle");
   const mobileQuery = window.matchMedia("(max-width: 1100px)");
 
   const initJqueryButtons = () => {
@@ -154,21 +153,6 @@
     });
     mobileQuery.addEventListener("change", syncMenuState);
     syncMenuState();
-  }
-
-  const applyDensity = (isCompact) => {
-    $body.toggleClass("density-compact", isCompact);
-    if ($densityToggle.length) {
-      $densityToggle.attr("aria-pressed", isCompact ? "true" : "false");
-      $densityToggle.text(isCompact ? "Стандартный режим" : "Компактный режим");
-    }
-    window.localStorage.setItem("ui_density_compact", isCompact ? "1" : "0");
-  };
-
-  if ($densityToggle.length) {
-    const savedDensity = window.localStorage.getItem("ui_density_compact") === "1";
-    applyDensity(savedDensity);
-    $densityToggle.on("click", () => applyDensity(!$body.hasClass("density-compact")));
   }
 
   $("[data-nav-toggle]").each((_, element) => {
