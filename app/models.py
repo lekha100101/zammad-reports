@@ -117,3 +117,12 @@ class ReportMetricSetting(Base):
     key = Column(String(100), unique=True, index=True, nullable=False)
     value = Column(String(100), nullable=False)
     updated_at = Column(DateTime, nullable=True)
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=False)
+    updated_at = Column(DateTime, nullable=True)

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Настройки приложения</h1>
+<p class="report-description">Общие настройки приложения вынесены в отдельный раздел. Значения используются в синхронизации и UI по умолчанию.</p>
+
+<form method="post" action="/admin/settings">
+  <article>
+    <h3>Общие</h3>
+    <div class="grid">
+      <label>
+        Название приложения
+        <input type="text" name="app_name" value="{{ app_settings.app_name }}">
+      </label>
+      <label>
+        Часовой пояс
+        <input type="text" name="tz" value="{{ app_settings.tz }}">
+      </label>
+      <label>
+        DEBUG (0/1)
+        <input type="number" min="0" max="1" step="1" name="debug" value="{{ app_settings.debug }}">
+      </label>
+      <label>
+        SYNC_TOKEN
+        <input type="text" name="sync_token" value="{{ app_settings.sync_token }}">
+      </label>
+    </div>
+  </article>
+
+  <article>
+    <h3>Zammad</h3>
+    <div class="grid">
+      <label>
+        Zammad URL
+        <input type="text" name="zammad_url" value="{{ app_settings.zammad_url }}">
+      </label>
+      <label>
+        Zammad Token
+        <input type="text" name="zammad_token" value="{{ app_settings.zammad_token }}">
+      </label>
+      <label>
+        Verify SSL (0/1)
+        <input type="number" min="0" max="1" step="1" name="zammad_verify_ssl" value="{{ app_settings.zammad_verify_ssl }}">
+      </label>
+      <label>
+        Per Page
+        <input type="number" min="1" step="1" name="zammad_per_page" value="{{ app_settings.zammad_per_page }}">
+      </label>
+    </div>
+  </article>
+
+  <div class="page-actions">
+    <button type="submit" data-icon="fa-floppy-disk">Сохранить настройки</button>
+  </div>
+</form>
+{% endblock %}

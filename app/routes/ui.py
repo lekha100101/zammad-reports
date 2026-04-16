@@ -1,5 +1,3 @@
-import os
-
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
 from app.models import SyncLog, Ticket, TicketState
+from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
 from app.services.sync_service import SyncService
@@ -249,13 +248,55 @@ def report_metrics_settings_save(
     return RedirectResponse("/admin/report-metrics", status_code=302)
 
 
+@router.get("/admin/settings", response_class=HTMLResponse)
+@admin_required_page
+def app_settings_page(request: Request, db: Session = Depends(get_db)):
+    app_settings = get_app_settings(db)
+    return templates.TemplateResponse(
+        "app_settings.html",
+        {"request": request, "app_settings": app_settings, "current_user": request.state.current_user},
+    )
+
+
+@router.post("/admin/settings")
+@admin_required_page
+def app_settings_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    app_name: str = Form(""),
+    debug: str = Form("0"),
+    zammad_url: str = Form(""),
+    zammad_token: str = Form(""),
+    zammad_verify_ssl: str = Form("1"),
+    zammad_per_page: str = Form("100"),
+    tz: str = Form(""),
+    sync_token: str = Form(""),
+):
+    update_app_settings(
+        db,
+        {
+            "app_name": app_name,
+            "debug": debug,
+            "zammad_url": zammad_url,
+            "zammad_token": zammad_token,
+            "zammad_verify_ssl": zammad_verify_ssl,
+            "zammad_per_page": zammad_per_page,
+            "tz": tz,
+            "sync_token": sync_token,
+        },
+    )
+    return RedirectResponse("/admin/settings", status_code=302)
+
+
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):
+    zammad_url = get_app_setting(db, "zammad_url")
+    zammad_token = get_app_setting(db, "zammad_token")
     sync_service = SyncService(
         db,
-        os.getenv("ZAMMAD_URL"),
-        os.getenv("ZAMMAD_TOKEN"),
+        zammad_url,
+        zammad_token,
     )
     sync_service.sync_all()
     return RedirectResponse("/", status_code=302)

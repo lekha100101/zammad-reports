@@ -1,4 +1,3 @@
-import os
 import requests
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -7,14 +6,15 @@ from sqlalchemy.orm import Session
 from app.auth import require_user
 from app.deps import get_db
 from app.models import Ticket
+from app.services.app_settings_service import get_app_setting
 from app.services.sync_service import SyncService
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
 def get_sync(db: Session):
-    base_url = os.getenv("ZAMMAD_URL")
-    token = os.getenv("ZAMMAD_TOKEN")
+    base_url = get_app_setting(db, "zammad_url")
+    token = get_app_setting(db, "zammad_token")
 
     if not base_url or not token:
         raise HTTPException(status_code=500, detail="ZAMMAD_URL or ZAMMAD_TOKEN not set")
@@ -27,7 +27,7 @@ def ensure_sync_access(
     db: Session,
     x_sync_token: str | None = None,
 ):
-    expected = os.getenv("SYNC_TOKEN", "").strip()
+    expected = get_app_setting(db, "sync_token").strip()
 
     if expected and x_sync_token == expected:
         return

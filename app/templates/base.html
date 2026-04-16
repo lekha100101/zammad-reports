@@ -42,6 +42,7 @@
               <span class="section-caret">▾</span>
             </button>
             <div class="side-nav-group" data-nav-group>
+              <a href="/admin/settings" class="menu-btn {% if request.url.path.startswith('/admin/settings') %}active{% endif %}">Настройки</a>
               <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
               <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
               <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
