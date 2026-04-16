@@ -271,21 +271,6 @@
       setStatus();
     });
 
-    $form.find("[data-range]").on("click", function () {
-      const range = $(this).data("range");
-      const now = window.moment();
-      let from = window.moment(now);
-      const to = window.moment(now);
-
-      if (range === "7d") from = now.clone().subtract(6, "days");
-      if (range === "30d") from = now.clone().subtract(29, "days");
-      if (range === "month") from = now.clone().startOf("month");
-
-      setRange(from, to);
-      setStatus();
-      $form.trigger("submit");
-    });
-
     $form.find('[data-action="clear-dates"]').on("click", () => {
       $from.val("");
       $to.val("");

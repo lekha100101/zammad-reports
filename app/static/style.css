@@ -260,11 +260,6 @@ a[role="button"].danger {
   min-width: 260px;
 }
 
-.filter-presets {
-  display: inline-flex;
-  gap: 6px;
-}
-
 .filter-actions {
   display: inline-flex;
   gap: 6px;
@@ -440,8 +435,7 @@ table tbody tr:hover {
     width: 100%;
   }
 
-  .filter-actions,
-  .filter-presets {
+  .filter-actions {
     width: 100%;
     flex-wrap: wrap;
   }
