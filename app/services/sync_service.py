@@ -8,10 +8,30 @@ from app.models import Ticket, User, Group, Organization, TimeAccounting, SyncLo
 def parse_dt(value):
     if not value:
         return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except Exception:
+    if isinstance(value, datetime):
+        return value
+
+    value = str(value).strip()
+    if not value:
         return None
+
+    formats = [
+        None,  # fromisoformat
+        "%Y-%m-%d %H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S",
+    ]
+
+    for fmt in formats:
+        try:
+            if fmt is None:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return datetime.strptime(value, fmt)
+        except Exception:
+            continue
+
+    return None
 
 class SyncService:
 
@@ -215,28 +235,79 @@ class SyncService:
 
     def sync_time_accounting(self):
         log = self._log_start("time")
-        r = requests.get(
-            f"{self.base_url}/api/v1/time_accountings",
-            headers=self.headers
-        )
-
-        data = r.json()
+        page = 1
+        per_page = 100
         count = 0
 
-        for t in data:
-            obj = self.db.get(TimeAccounting, t["id"])
+        def upsert_time_row(t, fallback_ticket_id=None):
+            nonlocal count
+            row_id = t.get("id")
+            if row_id is None:
+                return
+
+            obj = self.db.get(TimeAccounting, row_id)
             if not obj:
-                obj = TimeAccounting(id=t["id"])
+                obj = TimeAccounting(id=row_id)
                 self.db.add(obj)
 
-            obj.ticket_id = t.get("ticket_id")
+            obj.ticket_id = t.get("ticket_id") or fallback_ticket_id
             obj.time_unit = t.get("time_unit")
             obj.created_by_id = t.get("created_by_id")
-            obj.created_at = t.get("created_at")
+            obj.created_at = parse_dt(t.get("created_at"))
+            obj.updated_at = parse_dt(t.get("updated_at"))
 
             count += 1
 
-        self.db.commit()
+        while True:
+            r = requests.get(
+                f"{self.base_url}/api/v1/time_accountings?page={page}&per_page={per_page}",
+                headers=self.headers
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            if isinstance(data, dict):
+                if data.get("error"):
+                    raise RuntimeError(f"time_accountings sync error: {data.get('error')}")
+                data = data.get("assets") or data.get("data") or data.get("time_accountings") or []
+
+            if not isinstance(data, list) or not data:
+                break
+
+            for t in data:
+                upsert_time_row(t)
+
+            self.db.commit()
+
+            if len(data) < per_page:
+                break
+
+            page += 1
+
+        # fallback для инсталляций, где общий endpoint /time_accountings не возвращает записи
+        if count == 0:
+            ticket_ids = [t[0] for t in self.db.query(Ticket.id).all()]
+
+            for ticket_id in ticket_ids:
+                r = requests.get(
+                    f"{self.base_url}/api/v1/tickets/{ticket_id}/time_accountings",
+                    headers=self.headers,
+                )
+                if r.status_code == 404:
+                    continue
+
+                r.raise_for_status()
+                data = r.json()
+                if isinstance(data, dict):
+                    data = data.get("assets") or data.get("data") or data.get("time_accountings") or []
+                if not isinstance(data, list):
+                    continue
+
+                for t in data:
+                    upsert_time_row(t, fallback_ticket_id=ticket_id)
+
+            self.db.commit()
+
         self._log_finish(log, count)
         return count
 
@@ -246,5 +317,6 @@ class SyncService:
             "groups": self.sync_groups(),
             "organizations": self.sync_organizations(),
             "states": self.sync_ticket_states(),
-            "tickets": self.sync_tickets()
+            "tickets": self.sync_tickets(),
+            "time_accountings": self.sync_time_accounting(),
         }

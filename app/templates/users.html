@@ -3,8 +3,9 @@
 <h1>Управление пользователями</h1>
 
 <article>
-  <h3>Создать пользователя</h3>
-  <form method="post" action="/admin/users/create">
+  <h3>Создание пользователя</h3>
+  <button type="button" id="openCreateUserDialog" class="btn-inline" data-icon="fa-user-plus">Создать пользователя</button>
+  <form method="post" action="/admin/users/create" id="createUserDialog" title="Новый пользователь" style="display:none;">
     <div class="grid">
       <label>
         Логин
@@ -19,7 +20,7 @@
       <input type="checkbox" name="is_admin" value="1">
       Администратор
     </label>
-    <button type="submit" class="btn-inline">Создать</button>
+    <button type="submit" class="btn-inline" data-icon="fa-floppy-disk">Сохранить</button>
   </form>
 </article>
 
@@ -46,10 +47,10 @@
           <td>
             {% if current_user.id != user.id %}
             <form method="post" action="/admin/users/{{ user.id }}/toggle" style="display:inline;">
-              <button type="submit" class="btn-small">{{ "Отключить" if user.is_active else "Включить" }}</button>
+              <button type="submit" class="btn-small" data-icon="fa-power-off">{{ "Отключить" if user.is_active else "Включить" }}</button>
             </form>
             <form method="post" action="/admin/users/{{ user.id }}/delete" style="display:inline;" onsubmit="return confirm('Удалить пользователя?');">
-              <button type="submit" class="btn-small danger">Удалить</button>
+              <button type="submit" class="btn-small danger" data-icon="fa-trash">Удалить</button>
             </form>
   	    {% else %}
             текущий пользователь
