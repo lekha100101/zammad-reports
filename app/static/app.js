@@ -6,6 +6,7 @@
   const $toggle = $("#menuToggle");
   const $sideNav = $("#sideNav");
   const $overlay = $("#menuOverlay");
+  const $themeToggle = $("#themeToggle");
   const mobileQuery = window.matchMedia("(max-width: 1100px)");
 
   const initJqueryButtons = () => {
@@ -153,6 +154,27 @@
     });
     mobileQuery.addEventListener("change", syncMenuState);
     syncMenuState();
+  }
+
+  const applyTheme = (theme) => {
+    const dark = theme === "dark";
+    $body.toggleClass("theme-dark", dark);
+    window.localStorage.setItem("ui_theme", dark ? "dark" : "light");
+    if ($themeToggle.length) {
+      $themeToggle.text(dark ? "Светлая тема" : "Темная тема");
+      $themeToggle.attr("data-icon", dark ? "fa-sun" : "fa-moon");
+      const iconClass = dark ? "fa-sun" : "fa-moon";
+      const $icon = $themeToggle.find("i");
+      if ($icon.length) $icon.attr("class", `fa-solid ${iconClass}`);
+    }
+  };
+
+  if ($themeToggle.length) {
+    const savedTheme = window.localStorage.getItem("ui_theme") || "light";
+    applyTheme(savedTheme);
+    $themeToggle.on("click", () => {
+      applyTheme($body.hasClass("theme-dark") ? "light" : "dark");
+    });
   }
 
   $("[data-nav-toggle]").each((_, element) => {
