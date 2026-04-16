@@ -12,62 +12,60 @@
   <link rel="stylesheet" href="/static/style.css?v=20260415-2">
 </head>
 <body class="zammad-skin">
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand-block">
-        <div class="brand-title">Zammad Reports</div>
-        <div class="brand-subtitle">Отчетность и аналитика</div>
-      </div>
-
-      {% if current_user %}
-      <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="sideNav">
-        ☰ Меню
-      </button>
-      <div class="topbar-right">
-        <button type="button" class="secondary btn-small compact-toggle" id="densityToggle" aria-pressed="false">
-          Компактный режим
-        </button>
-        <div class="user-badge">{{ current_user.username }}</div>
-        <a href="/logout" class="logout-btn">Выход</a>
-      </div>
-      {% endif %}
-    </div>
-  </header>
-
   <main class="container main-container">
     <div class="layout-shell">
       {% if current_user %}
       <aside class="left-sidebar" id="sideNav">
-        <nav class="side-nav" aria-label="Основная навигация">
-          <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle aria-expanded="true">
-            <span>Отчеты</span>
-            <span class="section-caret">▾</span>
-          </button>
-          <div class="side-nav-group" data-nav-group>
-            <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
-            <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
-            <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
-            <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
-            <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
-            <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
-            <a href="/reports/sla" class="menu-btn {% if request.url.path == '/reports/sla' %}active{% endif %}">SLA отчет</a>
-            <a href="/reports/workload" class="menu-btn {% if request.url.path == '/reports/workload' %}active{% endif %}">Workload</a>
+        <div class="sidebar-top">
+          <div class="brand-block">
+            <div class="brand-title">Zammad Reports</div>
+            <div class="brand-subtitle">Отчетность и аналитика</div>
           </div>
+          <nav class="side-nav" aria-label="Основная навигация">
+            <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle aria-expanded="true">
+              <span>Отчеты</span>
+              <span class="section-caret">▾</span>
+            </button>
+            <div class="side-nav-group" data-nav-group>
+              <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
+              <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
+              <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
+              <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
+              <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
+              <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
+              <a href="/reports/sla" class="menu-btn {% if request.url.path == '/reports/sla' %}active{% endif %}">SLA отчет</a>
+              <a href="/reports/workload" class="menu-btn {% if request.url.path == '/reports/workload' %}active{% endif %}">Workload</a>
+            </div>
 
-          <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle aria-expanded="true">
-            <span>Администрирование</span>
-            <span class="section-caret">▾</span>
-          </button>
-          <div class="side-nav-group" data-nav-group>
-            <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
-            <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
-            <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
-          </div>
-        </nav>
+            <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle aria-expanded="true">
+              <span>Администрирование</span>
+              <span class="section-caret">▾</span>
+            </button>
+            <div class="side-nav-group" data-nav-group>
+              <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
+              <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
+              <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
+            </div>
+          </nav>
+        </div>
+        <div class="sidebar-bottom">
+          <div class="user-badge">{{ current_user.username }}</div>
+          <a href="/logout" class="logout-btn">Выход</a>
+        </div>
       </aside>
       {% endif %}
 
       <section class="content-area">
+        <div class="content-topbar">
+          {% if current_user %}
+          <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="sideNav">
+            ☰ Меню
+          </button>
+          <button type="button" class="secondary btn-small compact-toggle" id="densityToggle" aria-pressed="false">
+            Компактный режим
+          </button>
+          {% endif %}
+        </div>
         {% block content %}{% endblock %}
       </section>
     </div>

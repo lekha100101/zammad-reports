@@ -25,27 +25,11 @@ body {
 
 .main-container {
   max-width: 1680px;
-  margin: 14px auto 24px;
+  margin: 0 auto;
   padding: 0 12px !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-}
-
-.topbar {
-  background: linear-gradient(#ededed, #dcdcdc);
-  border-bottom: 1px solid var(--jq-border);
-  box-shadow: var(--jq-shadow);
-  padding: 8px 12px;
-}
-
-.topbar-inner {
-  max-width: 1680px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 .brand-title {
@@ -59,12 +43,6 @@ body {
   color: var(--jq-muted);
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .user-badge {
   padding: 6px 10px !important;
   border: 1px solid var(--jq-border);
@@ -76,19 +54,40 @@ body {
 .layout-shell {
   display: grid;
   grid-template-columns: 255px minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
   gap: 12px;
+  min-height: 100vh;
+  padding: 12px 0;
 }
 
 .left-sidebar {
-  position: sticky;
-  top: 10px;
-}
-
-.side-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
   background: var(--jq-surface);
   border: 1px solid var(--jq-border);
   box-shadow: var(--jq-shadow);
+  padding: 10px;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid var(--jq-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-nav {
+  background: transparent;
+  border: 1px solid var(--jq-border);
 }
 
 .side-nav-section {
@@ -141,6 +140,14 @@ body {
   border: 1px solid var(--jq-border);
   box-shadow: var(--jq-shadow);
   padding: 14px;
+}
+
+.content-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 h1 {
@@ -352,7 +359,7 @@ table tbody tr:hover {
   z-index: 20;
 }
 
-.topbar .menu-toggle {
+.menu-toggle {
   display: none !important;
 }
 
@@ -392,18 +399,19 @@ table tbody tr:hover {
 @media (max-width: 1120px) {
   .layout-shell {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
-  .topbar .menu-toggle {
+  .menu-toggle {
     display: inline-flex !important;
   }
 
   .left-sidebar {
     position: fixed;
-    top: 56px;
+    top: 0;
     left: 0;
     width: min(320px, 92vw);
-    max-height: calc(100vh - 56px);
+    max-height: 100vh;
     overflow: auto;
     z-index: 50;
     transform: translateX(-105%);
@@ -420,15 +428,6 @@ table tbody tr:hover {
 }
 
 @media (max-width: 720px) {
-  .topbar-inner {
-    flex-wrap: wrap;
-  }
-
-  .topbar-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .filter-item-range,
   .js-date-range {
     min-width: 100%;
