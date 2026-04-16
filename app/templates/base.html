@@ -5,79 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ request.app.title }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/base/jquery-ui.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.jqueryui.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-  <link rel="stylesheet" href="/static/style.css?v=20260415-2">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="zammad-skin">
-  <header class="top-nav">
-    <div class="top-nav-left">
-      {% if current_user %}
-      <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="sideNav">☰</button>
-      {% endif %}
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
       <div class="brand-block">
         <div class="brand-title">Zammad Reports</div>
-        <div class="brand-subtitle">Support analytics dashboard</div>
+        <div class="brand-subtitle">Отчетность и аналитика</div>
       </div>
-    </div>
-    {% if current_user %}
-    <div class="top-nav-right">
-      <button type="button" id="themeToggle" class="btn-small secondary" data-icon="fa-moon">Темная тема</button>
-      <div class="user-badge">{{ current_user.username }}</div>
-      <a href="/logout" class="logout-btn">Выход</a>
-    </div>
-    {% endif %}
-  </header>
-  <main class="container main-container">
-    <div class="layout-shell">
+
       {% if current_user %}
-      <aside class="left-sidebar" id="sideNav">
-        <div class="sidebar-top">
-          <nav class="side-nav" aria-label="Основная навигация">
-            <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle data-icon="fa-chart-line" aria-expanded="true">
-              <span>Отчеты</span>
-              <span class="section-caret">▾</span>
-            </button>
-            <div class="side-nav-group" data-nav-group>
-              <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
-              <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
-              <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
-              <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
-              <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
-              <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
-              <a href="/reports/sla" class="menu-btn {% if request.url.path == '/reports/sla' %}active{% endif %}">SLA отчет</a>
-              <a href="/reports/workload" class="menu-btn {% if request.url.path == '/reports/workload' %}active{% endif %}">Workload</a>
-            </div>
+      <nav class="topmenu">
+        <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
+        <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
+        <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
+        <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
+        <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
+        <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
+        <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
+        <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
+      </nav>
 
-            <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle data-icon="fa-gears" aria-expanded="true">
-              <span>Администрирование</span>
-              <span class="section-caret">▾</span>
-            </button>
-            <div class="side-nav-group" data-nav-group>
-              <a href="/admin/settings" class="menu-btn {% if request.url.path.startswith('/admin/settings') %}active{% endif %}">Настройки</a>
-              <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
-              <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
-              <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
-            </div>
-          </nav>
-        </div>
-      </aside>
+      <div class="topbar-right">
+        <div class="user-badge">{{ current_user.username }}</div>
+        <a href="/logout" class="logout-btn">Выход</a>
+      </div>
       {% endif %}
-
-      <section class="content-area">
-        {% block content %}{% endblock %}
-      </section>
     </div>
-    <div class="menu-overlay" id="menuOverlay" hidden></div>
+  </header>
+
+  <main class="container main-container">
+    {% block content %}{% endblock %}
   </main>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.jqueryui.min.js"></script>
-  <script src="/static/app.js?v=20260415-2"></script>
 </body>
 </html>
