@@ -3,7 +3,7 @@
 
 <h1>Сводный отчет по областям</h1>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar filter-toolbar">
   <div class="filter-item">
     <label>Дата с</label>
     <div class="date-input">
@@ -18,21 +18,22 @@
     </div>
   </div>
 
-  <button type="submit">Применить</button>
-
-  <a role="button" class="secondary"
-     href="/api/reports/regional-summary/export.xlsx{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
-    Excel
-  </a>
-
-  <a role="button" class="secondary"
-     href="/api/reports/regional-summary/export.csv{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
-    CSV
-  </a>
+  <div class="filter-actions">
+    <button type="submit">Применить</button>
+    <a role="button" class="secondary" href="{{ request.url.path }}">Сбросить</a>
+    <a role="button" class="secondary"
+       href="/api/reports/regional-summary/export.xlsx{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
+      Excel
+    </a>
+    <a role="button" class="secondary"
+       href="/api/reports/regional-summary/export.csv{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
+      CSV
+    </a>
+  </div>
 </form>
 
 <div class="table-wrapper">
-  <table class="report-table compact-table regional-report-flat">
+  <table class="report-table compact-table regional-report-flat no-sort">
     <thead>
       <tr>
         <th class="center col-region">Регион</th>
@@ -52,21 +53,21 @@
 
         <tr>
           <td rowspan="{{ span }}" class="region-cell">{{ row.region }}</td>
-          <td rowspan="{{ span }}" class="center">{{ row.incoming_count }}</td>
-          <td rowspan="{{ span }}" class="center">{{ row.closed_count }}</td>
-          <td rowspan="{{ span }}" class="center highlight-cell">{{ row.carried_count }}</td>
+          <td rowspan="{{ span }}" class="center num">{{ row.incoming_count }}</td>
+          <td rowspan="{{ span }}" class="center num">{{ row.closed_count }}</td>
+          <td rowspan="{{ span }}" class="center highlight-cell num">{{ row.carried_count }}</td>
 
           <td>{{ items[0].name }}</td>
-          <td class="center">{{ items[0].count }}</td>
+          <td class="center num">{{ items[0].count }}</td>
 
-          <td rowspan="{{ span }}" class="center">{{ row.avg_close_time }}</td>
-          <td rowspan="{{ span }}" class="center">{{ row.avg_response_time }}</td>
+          <td rowspan="{{ span }}" class="center num">{{ row.avg_close_time }}</td>
+          <td rowspan="{{ span }}" class="center num">{{ row.avg_response_time }}</td>
         </tr>
 
         {% for item in items[1:] %}
         <tr>
           <td>{{ item.name }}</td>
-          <td class="center">{{ item.count }}</td>
+          <td class="center num">{{ item.count }}</td>
         </tr>
         {% endfor %}
       {% endfor %}
