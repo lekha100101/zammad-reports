@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func
@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
+from app.db import SessionLocal
 from app.models import SyncLog, Ticket, TicketState
 from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
@@ -25,6 +26,18 @@ def local_time(dt):
         .astimezone(ZoneInfo("Asia/Almaty"))
         .strftime("%Y-%m-%d %H:%M:%S")
     )
+
+
+def run_sync_in_background(zammad_url: str, zammad_token: str):
+    db = SessionLocal()
+    try:
+        SyncService(
+            db,
+            zammad_url,
+            zammad_token,
+        ).sync_all()
+    finally:
+        db.close()
 
 @router.get("/", response_class=HTMLResponse)
 @login_required_page
@@ -290,13 +303,12 @@ def app_settings_save(
 
 @router.post("/sync/run")
 @login_required_page
-def run_sync(request: Request, db: Session = Depends(get_db)):
+def run_sync(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     zammad_url = get_app_setting(db, "zammad_url")
     zammad_token = get_app_setting(db, "zammad_token")
-    sync_service = SyncService(
-        db,
-        zammad_url,
-        zammad_token,
-    )
-    sync_service.sync_all()
+    background_tasks.add_task(run_sync_in_background, zammad_url, zammad_token)
     return RedirectResponse("/", status_code=302)
