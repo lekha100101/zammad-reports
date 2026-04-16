@@ -431,6 +431,15 @@ body.theme-dark table th {
 
 body.theme-dark table td {
   border-color: #505968;
+  background: #2b313a;
+  color: #eaf1ff;
+}
+
+body.theme-dark .table-wrapper,
+body.theme-dark .report-wrapper,
+body.theme-dark table,
+body.theme-dark table tbody tr {
+  background: #2b313a;
 }
 
 body.theme-dark table tbody tr:nth-child(even) {
