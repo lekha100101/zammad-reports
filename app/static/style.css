@@ -265,6 +265,12 @@ a[role="button"].danger {
   gap: 6px;
 }
 
+.filter-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .filter-status {
   margin-left: auto;
   color: #4d4d4d;
@@ -432,6 +438,12 @@ table tbody tr:hover {
   .js-date-range {
     min-width: 100%;
     width: 100%;
+  }
+
+  .filter-actions,
+  .filter-presets {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .filter-status {

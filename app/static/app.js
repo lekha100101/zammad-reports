@@ -192,6 +192,15 @@
     if (!$range.length || !$from.length || !$to.length || !window.moment || !$.fn.daterangepicker) return;
 
     const fmt = (date) => date.format("YYYY-MM-DD");
+    const parseInputRange = () => {
+      const raw = ($range.val() || "").trim();
+      const parts = raw.split(" - ");
+      if (parts.length !== 2) return null;
+      const start = window.moment(parts[0], "YYYY-MM-DD", true);
+      const end = window.moment(parts[1], "YYYY-MM-DD", true);
+      if (!start.isValid() || !end.isValid()) return null;
+      return { start, end };
+    };
     const setRange = (start, end) => {
       $from.val(fmt(start));
       $to.val(fmt(end));
@@ -211,6 +220,7 @@
     $range.daterangepicker(
       {
         autoUpdateInput: true,
+        autoApply: false,
         locale: { format: "YYYY-MM-DD", separator: " - " },
         startDate: startInit,
         endDate: endInit,
@@ -227,6 +237,10 @@
       },
     );
     setRange(startInit, endInit);
+    $range.on("apply.daterangepicker", (_, picker) => {
+      setRange(picker.startDate, picker.endDate);
+      setStatus();
+    });
 
     $form.find("[data-range]").on("click", function () {
       const range = $(this).data("range");
@@ -252,6 +266,10 @@
 
     $from.on("change", setStatus);
     $to.on("change", setStatus);
+    $form.on("submit", () => {
+      const parsed = parseInputRange();
+      if (parsed) setRange(parsed.start, parsed.end);
+    });
     setStatus();
   });
 
