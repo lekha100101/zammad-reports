@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Workload и backlog trend</h1>
-<p class="report-description">Показывает текущую нагрузку по исполнителям и динамику backlog по дням (создано, закрыто, изменение и накопительный тренд).</p>
+<p class="report-description">Показывает текущую нагрузку по исполнителям и динамику backlog по дням (создано, закрыто, изменение и накопительный тренд). Пороги: warning ≥ {{ workload_open_warning }}, critical ≥ {{ workload_open_critical }}, backlog Δ warning ≥ {{ backlog_delta_warning }}.</p>
 {% include "_filter.html" %}
 <div class="page-actions">
   <a role="button" data-icon="fa-file-excel" href="/api/reports/workload/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>

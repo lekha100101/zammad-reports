@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_, case, cast, Date, func, or_
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.models import Ticket, User, Group, Organization, TicketState, ReportRegion
+from app.services.metric_settings_service import get_metric_int
 
 
 class ReportService:
@@ -307,8 +307,8 @@ class ReportService:
         dt_from = self._parse_date_start(date_from)
         dt_to = self._parse_date_end(date_to)
 
-        response_sla_seconds = settings.sla_response_minutes * 60
-        resolution_sla_seconds = settings.sla_resolution_hours * 60 * 60
+        response_sla_seconds = get_metric_int(self.db, "sla_response_minutes") * 60
+        resolution_sla_seconds = get_metric_int(self.db, "sla_resolution_hours") * 60 * 60
 
         query = (
             self.db.query(

@@ -108,3 +108,12 @@ class ReportRegion(Base):
     id = Column(Integer, primary_key=True)
     group_id = Column(Integer, unique=True, index=True)
     name = Column(String, nullable=False)
+
+
+class ReportMetricSetting(Base):
+    __tablename__ = "report_metric_settings"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(String(100), nullable=False)
+    updated_at = Column(DateTime, nullable=True)

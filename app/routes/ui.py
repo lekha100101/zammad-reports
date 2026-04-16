@@ -1,17 +1,16 @@
 import os
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from app.auth import login_required_page
-from app.config import settings
+from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
 from app.models import SyncLog, Ticket, TicketState
+from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
-from fastapi.responses import HTMLResponse, RedirectResponse
 from app.services.sync_service import SyncService
 from zoneinfo import ZoneInfo
 
@@ -185,8 +184,8 @@ def sla_report(
             "date_from": date_from,
             "date_to": date_to,
             "current_user": request.state.current_user,
-            "sla_response_minutes": settings.sla_response_minutes,
-            "sla_resolution_hours": settings.sla_resolution_hours,
+            "sla_response_minutes": get_metric_int(db, "sla_response_minutes"),
+            "sla_resolution_hours": get_metric_int(db, "sla_resolution_hours"),
         },
     )
 
@@ -209,8 +208,45 @@ def workload_report(
             "date_from": date_from,
             "date_to": date_to,
             "current_user": request.state.current_user,
+            "workload_open_warning": get_metric_int(db, "workload_open_warning"),
+            "workload_open_critical": get_metric_int(db, "workload_open_critical"),
+            "backlog_delta_warning": get_metric_int(db, "backlog_delta_warning"),
         },
     )
+
+
+@router.get("/admin/report-metrics", response_class=HTMLResponse)
+@admin_required_page
+def report_metrics_settings(request: Request, db: Session = Depends(get_db)):
+    metrics = get_metric_settings(db)
+    return templates.TemplateResponse(
+        "metrics_settings.html",
+        {"request": request, "metrics": metrics, "current_user": request.state.current_user},
+    )
+
+
+@router.post("/admin/report-metrics")
+@admin_required_page
+def report_metrics_settings_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    sla_response_minutes: str = Form(""),
+    sla_resolution_hours: str = Form(""),
+    workload_open_warning: str = Form(""),
+    workload_open_critical: str = Form(""),
+    backlog_delta_warning: str = Form(""),
+):
+    update_metric_settings(
+        db,
+        {
+            "sla_response_minutes": sla_response_minutes,
+            "sla_resolution_hours": sla_resolution_hours,
+            "workload_open_warning": workload_open_warning,
+            "workload_open_critical": workload_open_critical,
+            "backlog_delta_warning": backlog_delta_warning,
+        },
+    )
+    return RedirectResponse("/admin/report-metrics", status_code=302)
 
 
 @router.post("/sync/run")
