@@ -23,7 +23,11 @@
       return "fa-circle-dot";
     };
 
-    $("button, input[type='submit'], input[type='button'], a[role='button']").each((_, element) => {
+    $("button, input[type='submit'], input[type='button'], a[role='button']")
+      .not(".drp-buttons button")
+      .not(".applyBtn")
+      .not(".cancelBtn")
+      .each((_, element) => {
       const $el = $(element);
       const icon = $el.data("icon") || guessIcon($el.text());
       if (icon && $el.find("i").length === 0) {
@@ -221,7 +225,32 @@
       {
         autoUpdateInput: true,
         autoApply: false,
-        locale: { format: "YYYY-MM-DD", separator: " - " },
+        locale: {
+          format: "YYYY-MM-DD",
+          separator: " - ",
+          applyLabel: "Применить",
+          cancelLabel: "Отмена",
+          fromLabel: "С",
+          toLabel: "По",
+          customRangeLabel: "Произвольный",
+          weekLabel: "Нд",
+          daysOfWeek: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+          monthNames: [
+            "Январь",
+            "Февраль",
+            "Март",
+            "Апрель",
+            "Май",
+            "Июнь",
+            "Июль",
+            "Август",
+            "Сентябрь",
+            "Октябрь",
+            "Ноябрь",
+            "Декабрь",
+          ],
+          firstDay: 1,
+        },
         startDate: startInit,
         endDate: endInit,
         ranges: {
