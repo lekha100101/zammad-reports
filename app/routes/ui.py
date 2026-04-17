@@ -1,3 +1,5 @@
+import threading
+
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -6,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
+from app.db import SessionLocal
 from app.models import SyncLog, Ticket, TicketState
 from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
@@ -15,6 +18,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
+SYNC_LOCK = threading.Lock()
 
 COMMON_TIMEZONES = [
     "UTC",
@@ -87,12 +91,14 @@ def index(request: Request, db: Session = Depends(get_db)):
         "last_sync": local_time(last_sync.started_at, tz_name) if last_sync else None,
         "last_sync_count": last_sync.items_count if last_sync else 0,
     }
+    sync_status = request.query_params.get("sync_status")
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "summary": summary,
+            "sync_status": sync_status,
             "current_user": request.state.current_user,
         },
     )
@@ -312,12 +318,22 @@ def app_settings_save(
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):
-    zammad_url = get_app_setting(db, "zammad_url")
-    zammad_token = get_app_setting(db, "zammad_token")
-    sync_service = SyncService(
-        db,
-        zammad_url,
-        zammad_token,
-    )
-    sync_service.sync_all()
-    return RedirectResponse("/", status_code=302)
+    if SYNC_LOCK.locked():
+        return RedirectResponse("/?sync_status=already_running", status_code=302)
+
+    def _sync_job():
+        if not SYNC_LOCK.acquire(blocking=False):
+            return
+        bg_db = SessionLocal()
+        try:
+            zammad_url = get_app_setting(bg_db, "zammad_url")
+            zammad_token = get_app_setting(bg_db, "zammad_token")
+            if not zammad_url or not zammad_token:
+                return
+            SyncService(bg_db, zammad_url, zammad_token).sync_all()
+        finally:
+            bg_db.close()
+            SYNC_LOCK.release()
+
+    threading.Thread(target=_sync_job, daemon=True).start()
+    return RedirectResponse("/?sync_status=started", status_code=302)
