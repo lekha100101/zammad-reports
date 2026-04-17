@@ -52,3 +52,31 @@ def save_region(
     db.commit()
 
     return RedirectResponse("/admin/regions", status_code=302)
+
+
+@router.post("/save-all")
+@login_required_page
+def save_regions_bulk(
+    request: Request,
+    group_id: list[int] = Form(...),
+    name: list[str] = Form(...),
+    db: Session = Depends(get_db),
+):
+    for gid, region_name in zip(group_id, name):
+        clean_name = (region_name or "").strip()
+        obj = db.query(ReportRegion).filter_by(group_id=gid).first()
+
+        if not clean_name:
+            if obj is not None:
+                db.delete(obj)
+            continue
+
+        if obj is None:
+            obj = ReportRegion(group_id=gid)
+            db.add(obj)
+
+        obj.name = clean_name
+
+    db.commit()
+
+    return RedirectResponse("/admin/regions", status_code=302)
