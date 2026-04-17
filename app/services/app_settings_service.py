@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session
 
@@ -44,6 +45,11 @@ def update_app_settings(db: Session, payload: dict[str, str]) -> None:
             try:
                 value = str(max(1, int(value)))
             except Exception:
+                value = APP_SETTING_DEFAULTS[key]
+        if key == "tz":
+            try:
+                ZoneInfo(value)
+            except ZoneInfoNotFoundError:
                 value = APP_SETTING_DEFAULTS[key]
 
         row = db.query(AppSetting).filter(AppSetting.key == key).first()

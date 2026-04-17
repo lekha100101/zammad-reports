@@ -1,3 +1,5 @@
+import threading
+
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -6,23 +8,30 @@ from sqlalchemy.orm import Session
 
 from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
+from app.db import SessionLocal
 from app.models import SyncLog, Ticket, TicketState
 from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
 from app.services.sync_service import SyncService
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
+SYNC_LOCK = threading.Lock()
 
-def local_time(dt):
+def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
 
+    try:
+        target_tz = ZoneInfo(tz_name or "UTC")
+    except ZoneInfoNotFoundError:
+        target_tz = ZoneInfo("UTC")
+
     return (
         dt.replace(tzinfo=ZoneInfo("UTC"))
-        .astimezone(ZoneInfo("Asia/Almaty"))
+        .astimezone(target_tz)
         .strftime("%Y-%m-%d %H:%M:%S")
     )
 
@@ -32,6 +41,7 @@ def index(request: Request, db: Session = Depends(get_db)):
     open_names = ["open", "new"]
     closed_names = ["closed"]
     suspended_names = ["suspended"]
+    tz_name = get_app_setting(db, "tz")
 
     open_count = (
         db.query(func.count(Ticket.id))
@@ -68,15 +78,17 @@ def index(request: Request, db: Session = Depends(get_db)):
         "open_count": open_count,
         "closed_count": closed_count,
         "suspended_count": suspended_count,
-        "last_sync": local_time(last_sync.started_at) if last_sync else None,
+        "last_sync": local_time(last_sync.started_at, tz_name) if last_sync else None,
         "last_sync_count": last_sync.items_count if last_sync else 0,
     }
+    sync_status = request.query_params.get("sync_status")
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "summary": summary,
+            "sync_status": sync_status,
             "current_user": request.state.current_user,
         },
     )
@@ -254,7 +266,11 @@ def app_settings_page(request: Request, db: Session = Depends(get_db)):
     app_settings = get_app_settings(db)
     return templates.TemplateResponse(
         "app_settings.html",
-        {"request": request, "app_settings": app_settings, "current_user": request.state.current_user},
+        {
+            "request": request,
+            "app_settings": app_settings,
+            "current_user": request.state.current_user,
+        },
     )
 
 
@@ -291,12 +307,22 @@ def app_settings_save(
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):
-    zammad_url = get_app_setting(db, "zammad_url")
-    zammad_token = get_app_setting(db, "zammad_token")
-    sync_service = SyncService(
-        db,
-        zammad_url,
-        zammad_token,
-    )
-    sync_service.sync_all()
-    return RedirectResponse("/", status_code=302)
+    if SYNC_LOCK.locked():
+        return RedirectResponse("/?sync_status=already_running", status_code=302)
+
+    def _sync_job():
+        if not SYNC_LOCK.acquire(blocking=False):
+            return
+        bg_db = SessionLocal()
+        try:
+            zammad_url = get_app_setting(bg_db, "zammad_url")
+            zammad_token = get_app_setting(bg_db, "zammad_token")
+            if not zammad_url or not zammad_token:
+                return
+            SyncService(bg_db, zammad_url, zammad_token).sync_all()
+        finally:
+            bg_db.close()
+            SYNC_LOCK.release()
+
+    threading.Thread(target=_sync_job, daemon=True).start()
+    return RedirectResponse("/?sync_status=started", status_code=302)
