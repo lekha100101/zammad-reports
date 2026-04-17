@@ -13,7 +13,15 @@
       </label>
       <label>
         Часовой пояс
-        <input type="text" name="tz" value="{{ app_settings.tz }}">
+        <select name="tz">
+          {% for tz_name in timezone_options %}
+          <option value="{{ tz_name }}" {% if app_settings.tz == tz_name %}selected{% endif %}>{{ tz_name }}</option>
+          {% endfor %}
+          {% if app_settings.tz not in timezone_options %}
+          <option value="{{ app_settings.tz }}" selected>{{ app_settings.tz }}</option>
+          {% endif %}
+        </select>
+        <small>Используется для отображения времени в интерфейсе (например, «Последняя синхронизация»).</small>
       </label>
       <label>
         DEBUG (0/1)

@@ -2,6 +2,12 @@
 {% block content %}
 <h1>Панель отчетов</h1>
 
+{% if sync_status == "started" %}
+  <article class="notice-success">Синхронизация запущена в фоне. Обновите страницу через некоторое время.</article>
+{% elif sync_status == "already_running" %}
+  <article class="notice-warning">Синхронизация уже выполняется. Дождитесь завершения текущего запуска.</article>
+{% endif %}
+
 <div class="grid cards">
   <article>
     <h3>Открытые</h3>
@@ -30,7 +36,7 @@
 <article>
   <h3>Синхронизация</h3>
 
-  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?'); class="inline-form"">
+  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?');" class="inline-form">
     <button type="submit" class="btn-inline">
       Синхронизировать
     </button>
