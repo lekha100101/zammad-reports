@@ -20,16 +20,6 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
 SYNC_LOCK = threading.Lock()
 
-COMMON_TIMEZONES = [
-    "UTC",
-    "Europe/Moscow",
-    "Asia/Almaty",
-    "Asia/Tashkent",
-    "Asia/Bishkek",
-    "Asia/Yekaterinburg",
-]
-
-
 def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
@@ -279,7 +269,6 @@ def app_settings_page(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "app_settings": app_settings,
-            "timezone_options": COMMON_TIMEZONES,
             "current_user": request.state.current_user,
         },
     )
