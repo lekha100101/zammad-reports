@@ -11,18 +11,33 @@ from app.services.app_settings_service import get_app_settings, get_app_setting,
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
 from app.services.sync_service import SyncService
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
 
-def local_time(dt):
+COMMON_TIMEZONES = [
+    "UTC",
+    "Europe/Moscow",
+    "Asia/Almaty",
+    "Asia/Tashkent",
+    "Asia/Bishkek",
+    "Asia/Yekaterinburg",
+]
+
+
+def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
 
+    try:
+        target_tz = ZoneInfo(tz_name or "UTC")
+    except ZoneInfoNotFoundError:
+        target_tz = ZoneInfo("UTC")
+
     return (
         dt.replace(tzinfo=ZoneInfo("UTC"))
-        .astimezone(ZoneInfo("Asia/Almaty"))
+        .astimezone(target_tz)
         .strftime("%Y-%m-%d %H:%M:%S")
     )
 
@@ -32,6 +47,7 @@ def index(request: Request, db: Session = Depends(get_db)):
     open_names = ["open", "new"]
     closed_names = ["closed"]
     suspended_names = ["suspended"]
+    tz_name = get_app_setting(db, "tz")
 
     open_count = (
         db.query(func.count(Ticket.id))
@@ -68,7 +84,7 @@ def index(request: Request, db: Session = Depends(get_db)):
         "open_count": open_count,
         "closed_count": closed_count,
         "suspended_count": suspended_count,
-        "last_sync": local_time(last_sync.started_at) if last_sync else None,
+        "last_sync": local_time(last_sync.started_at, tz_name) if last_sync else None,
         "last_sync_count": last_sync.items_count if last_sync else 0,
     }
 
@@ -254,7 +270,12 @@ def app_settings_page(request: Request, db: Session = Depends(get_db)):
     app_settings = get_app_settings(db)
     return templates.TemplateResponse(
         "app_settings.html",
-        {"request": request, "app_settings": app_settings, "current_user": request.state.current_user},
+        {
+            "request": request,
+            "app_settings": app_settings,
+            "timezone_options": COMMON_TIMEZONES,
+            "current_user": request.state.current_user,
+        },
     )
 
 
