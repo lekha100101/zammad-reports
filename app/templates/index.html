@@ -2,18 +2,21 @@
 {% block content %}
 <h1>Панель отчетов</h1>
 
+{% set total_tickets = (summary.open_count or 0) + (summary.closed_count or 0) + (summary.suspended_count or 0) %}
+{% set sla_percent = summary.sla_percent if summary.sla_percent is defined else None %}
+
 <div class="grid cards">
-  <article>
-    <h3>Открытые</h3>
-    <p class="big-number">{{ summary.open_count }}</p>
+  <article class="metric-card">
+    <h3>Всего тикетов</h3>
+    <p class="big-number">{{ total_tickets }}</p>
   </article>
-  <article>
+  <article class="metric-card">
     <h3>Закрытые</h3>
     <p class="big-number">{{ summary.closed_count }}</p>
   </article>
-  <article>
-    <h3>Приостановленные</h3>
-    <p class="big-number">{{ summary.suspended_count }}</p>
+  <article class="metric-card">
+    <h3>SLA %</h3>
+    <p class="big-number">{% if sla_percent is not none %}{{ sla_percent }}%{% else %}—{% endif %}</p>
   </article>
 </div>
 
@@ -30,7 +33,7 @@
 <article>
   <h3>Синхронизация</h3>
 
-  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?'); class="inline-form"">
+  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?');" class="inline-form">
     <button type="submit" class="btn-inline">
       Синхронизировать
     </button>

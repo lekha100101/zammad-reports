@@ -16,18 +16,14 @@
       </div>
 
       {% if current_user %}
-      <nav class="topmenu">
-        <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
-        <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
-        <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
-        <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
-        <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
-        <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
-        <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
-        <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
-      </nav>
+      <div class="topbar-filters">
+        {% block topbar_filters %}{% endblock %}
+      </div>
+      {% endif %}
 
+      {% if current_user %}
       <div class="topbar-right">
+        <button type="button" class="theme-toggle secondary btn-small" id="theme-toggle">Тема</button>
         <div class="user-badge">{{ current_user.username }}</div>
         <a href="/logout" class="logout-btn">Выход</a>
       </div>
@@ -35,8 +31,72 @@
     </div>
   </header>
 
-  <main class="container main-container">
-    {% block content %}{% endblock %}
-  </main>
+  {% if current_user %}
+  <div class="layout-shell container-fluid">
+    <aside class="sidebar-menu" aria-label="Основное меню">
+      <nav class="topmenu">
+        <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}"><span class="menu-icon">⌂</span><span>Главная</span></a>
+        <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}"><span class="menu-icon">◔</span><span>Статусы</span></a>
+        <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}"><span class="menu-icon">👤</span><span>Исполнители</span></a>
+        <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}"><span class="menu-icon">☰</span><span>Группы</span></a>
+        <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}"><span class="menu-icon">▦</span><span>Организации</span></a>
+        <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}"><span class="menu-icon">◫</span><span>Сводный отчет</span></a>
+        <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}"><span class="menu-icon">⌘</span><span>Справочник регионов</span></a>
+        <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}"><span class="menu-icon">⚙</span><span>Пользователи</span></a>
+      </nav>
+    </aside>
+  {% endif %}
+
+    <main class="container main-container {% if current_user %}content-panel{% else %}auth-content{% endif %}">
+      {% block content %}{% endblock %}
+    </main>
+
+  {% if current_user %}
+  </div>
+  {% endif %}
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      const saved = localStorage.getItem('theme');
+      if (saved) root.setAttribute('data-theme', saved);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        });
+      }
+    })();
+
+    (function () {
+      const collator = new Intl.Collator('ru', { numeric: true, sensitivity: 'base' });
+      document.querySelectorAll('table.compact-table:not(.no-sort)').forEach((table) => {
+        const headers = table.querySelectorAll('thead th');
+        headers.forEach((th, idx) => {
+          th.classList.add('is-sortable');
+          th.addEventListener('click', () => {
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter((r) => !r.querySelector('[rowspan]'));
+            if (!rows.length) return;
+            const asc = th.dataset.order !== 'asc';
+            headers.forEach((h) => delete h.dataset.order);
+            th.dataset.order = asc ? 'asc' : 'desc';
+            rows.sort((a, b) => {
+              const av = (a.children[idx]?.innerText || '').trim();
+              const bv = (b.children[idx]?.innerText || '').trim();
+              const an = Number(av.replace(/\s/g, '').replace(',', '.'));
+              const bn = Number(bv.replace(/\s/g, '').replace(',', '.'));
+              if (!Number.isNaN(an) && !Number.isNaN(bn)) return asc ? an - bn : bn - an;
+              return asc ? collator.compare(av, bv) : collator.compare(bv, av);
+            });
+            rows.forEach((r) => tbody.appendChild(r));
+          });
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
