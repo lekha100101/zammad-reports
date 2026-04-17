@@ -9,6 +9,17 @@
   const $themeToggle = $("#themeToggle");
   const mobileQuery = window.matchMedia("(max-width: 1100px)");
 
+  const removeLegacyTimezoneMenuItem = () => {
+    $(".side-nav-group .menu-btn").each((_, element) => {
+      const $link = $(element);
+      const label = ($link.text() || "").trim().toLowerCase();
+      const href = ($link.attr("href") || "").toLowerCase();
+      if (label === "часовой пояс" || href.includes("#timezone-settings")) {
+        $link.remove();
+      }
+    });
+  };
+
   const initJqueryButtons = () => {
     const guessIcon = (label) => {
       const text = (label || "").toLowerCase();
@@ -176,6 +187,8 @@
       applyTheme($body.hasClass("theme-dark") ? "light" : "dark");
     });
   }
+
+  removeLegacyTimezoneMenuItem();
 
   $("[data-nav-toggle]").each((_, element) => {
     const $btn = $(element);
