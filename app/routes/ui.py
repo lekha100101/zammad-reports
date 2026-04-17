@@ -90,10 +90,9 @@ def index(request: Request, db: Session = Depends(get_db)):
     trend_backlog = [row["backlog_trend"] for row in trend_rows]
 
     chart_data = {
-        "status_labels": ["Открытые", "Закрытые", "Приостановленные"],
+        "status_labels": ["Открытые", "Приостановленные"],
         "status_values": [
             summary["open_count"],
-            summary["closed_count"],
             summary["suspended_count"],
         ],
         "trend_labels": trend_labels,
