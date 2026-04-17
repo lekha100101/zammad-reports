@@ -21,9 +21,17 @@ APP_SETTING_DEFAULTS = {
 
 def get_app_settings(db: Session) -> dict[str, str]:
     rows = db.query(AppSetting).all()
-    values = {row.key: row.value for row in rows}
     result = dict(APP_SETTING_DEFAULTS)
-    result.update(values)
+
+    for row in rows:
+        if row.value is None:
+            continue
+        value = str(row.value)
+        # Для ключевых параметров интеграции не перекрываем ENV-дефолт пустой строкой.
+        if row.key in {"zammad_url", "zammad_token"} and value.strip() == "":
+            continue
+        result[row.key] = value
+
     return result
 
 
@@ -53,7 +61,7 @@ def update_app_settings(db: Session, payload: dict[str, str]) -> None:
                 value = APP_SETTING_DEFAULTS[key]
 
         row = db.query(AppSetting).filter(AppSetting.key == key).first()
-        if key == "zammad_token" and value == "" and row is not None:
+        if key == "zammad_token" and value == "":
             continue
         if row is None:
             row = AppSetting(key=key, value=value, updated_at=datetime.utcnow())
