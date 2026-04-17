@@ -154,10 +154,8 @@ class ReportService:
         return " ".join(parts)
 
     def regional_period_report(self, date_from=None, date_to=None):
-        # нормализуем None
         if date_from == "None":
             date_from = None
-
         if date_to == "None":
             date_to = None
 
@@ -168,138 +166,145 @@ class ReportService:
             return []
 
         period_end_inclusive = dt_to
-
-        groups = (
-            self.db.query(Group.id, Group.name)
-            .order_by(Group.name.asc())
-            .all()
-        )
-
-        result = []
-
         closed_statuses = ["closed", "merged"]
+        groups = self.db.query(Group.id, Group.name).order_by(Group.name.asc()).all()
+        regions = {
+            row.group_id: row.name
+            for row in self.db.query(ReportRegion.group_id, ReportRegion.name).all()
+        }
 
-        for group_id, group_name in groups:
-            region = (
-                self.db.query(ReportRegion)
-                .filter(ReportRegion.group_id == group_id)
-                .first()
-            )
-
-            if region:
-                group_name = region.name
-
-            incoming_count = (
-                self.db.query(func.count(Ticket.id))
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.created_at >= dt_from)
-                .filter(Ticket.created_at < dt_to)
-                .scalar()
-                or 0
-            )
-
-            closed_count = (
-                self.db.query(func.count(Ticket.id))
-                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.close_at.is_not(None))
-                .filter(Ticket.close_at >= dt_from)
-                .filter(Ticket.close_at < dt_to)
-                .filter(func.lower(TicketState.name).in_(closed_statuses))
-                .scalar()
-                or 0
-            )
-
-            carried_count = (
-                self.db.query(func.count(Ticket.id))
-                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.created_at < period_end_inclusive)
-                .filter(
-                    (Ticket.close_at.is_(None)) |
-                    (Ticket.close_at >= period_end_inclusive)
-                )
-                .filter(~func.lower(TicketState.name).in_(closed_statuses))
-                .scalar()
-                or 0
-            )
-
-            specialist_rows = (
-                self.db.query(
-                    User.firstname,
-                    User.lastname,
-                    User.login,
-                    func.count(Ticket.id).label("cnt")
-                )
-                .join(Ticket, Ticket.owner_id == User.id)
-                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.close_at.is_not(None))
-                .filter(Ticket.close_at >= dt_from)
-                .filter(Ticket.close_at < dt_to)
-                .filter(func.lower(TicketState.name).in_(closed_statuses))
-                .group_by(User.firstname, User.lastname, User.login)
-                .order_by(func.count(Ticket.id).desc())
+        incoming_map = {
+            row.group_id: int(row.cnt or 0)
+            for row in (
+                self.db.query(Ticket.group_id.label("group_id"), func.count(Ticket.id).label("cnt"))
+                .filter(Ticket.created_at >= dt_from, Ticket.created_at < dt_to)
+                .group_by(Ticket.group_id)
                 .all()
             )
+        }
 
-            specialist_items = []
+        closed_map = {
+            row.group_id: int(row.cnt or 0)
+            for row in (
+                self.db.query(Ticket.group_id.label("group_id"), func.count(Ticket.id).label("cnt"))
+                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+                .filter(
+                    Ticket.close_at.is_not(None),
+                    Ticket.close_at >= dt_from,
+                    Ticket.close_at < dt_to,
+                    func.lower(TicketState.name).in_(closed_statuses),
+                )
+                .group_by(Ticket.group_id)
+                .all()
+            )
+        }
 
-            for row in specialist_rows:
-                fullname = " ".join([x for x in [row[0], row[1]] if x]).strip()
-                specialist_items.append({
-                    "name": fullname or row[2] or "Unknown",
-                    "count": row[3]
-                })
+        carried_map = {
+            row.group_id: int(row.cnt or 0)
+            for row in (
+                self.db.query(Ticket.group_id.label("group_id"), func.count(Ticket.id).label("cnt"))
+                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+                .filter(Ticket.created_at < period_end_inclusive)
+                .filter((Ticket.close_at.is_(None)) | (Ticket.close_at >= period_end_inclusive))
+                .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_statuses)))
+                .group_by(Ticket.group_id)
+                .all()
+            )
+        }
 
+        specialist_map = {}
+        specialist_rows = (
+            self.db.query(
+                Ticket.group_id.label("group_id"),
+                User.firstname,
+                User.lastname,
+                User.login,
+                func.count(Ticket.id).label("cnt"),
+            )
+            .join(User, Ticket.owner_id == User.id)
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(
+                Ticket.close_at.is_not(None),
+                Ticket.close_at >= dt_from,
+                Ticket.close_at < dt_to,
+                func.lower(TicketState.name).in_(closed_statuses),
+            )
+            .group_by(Ticket.group_id, User.firstname, User.lastname, User.login)
+            .order_by(Ticket.group_id.asc(), func.count(Ticket.id).desc())
+            .all()
+        )
+        for row in specialist_rows:
+            fullname = " ".join([x for x in [row.firstname, row.lastname] if x]).strip()
+            specialist_map.setdefault(row.group_id, []).append(
+                {"name": fullname or row.login or "Unknown", "count": int(row.cnt or 0)}
+            )
 
-            avg_close_seconds = (
+        avg_close_map = {
+            row.group_id: row.avg_seconds
+            for row in (
                 self.db.query(
+                    Ticket.group_id.label("group_id"),
                     func.avg(
                         func.extract("epoch", Ticket.close_at) - func.extract("epoch", Ticket.created_at)
-                    )
+                    ).label("avg_seconds"),
                 )
                 .outerjoin(TicketState, Ticket.state_id == TicketState.id)
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.close_at.is_not(None))
-                .filter(Ticket.created_at.is_not(None))
-                .filter(Ticket.close_at >= dt_from)
-                .filter(Ticket.close_at < dt_to)
-                .filter(func.lower(TicketState.name).in_(closed_statuses))
-                .scalar()
+                .filter(
+                    Ticket.close_at.is_not(None),
+                    Ticket.created_at.is_not(None),
+                    Ticket.close_at >= dt_from,
+                    Ticket.close_at < dt_to,
+                    func.lower(TicketState.name).in_(closed_statuses),
+                )
+                .group_by(Ticket.group_id)
+                .all()
             )
+        }
 
-            avg_response_seconds = (
+        avg_response_map = {
+            row.group_id: row.avg_seconds
+            for row in (
                 self.db.query(
+                    Ticket.group_id.label("group_id"),
                     func.avg(
                         func.extract("epoch", Ticket.first_response_at) - func.extract("epoch", Ticket.created_at)
-                    )
+                    ).label("avg_seconds"),
                 )
-                .filter(Ticket.group_id == group_id)
-                .filter(Ticket.first_response_at.is_not(None))
-                .filter(Ticket.created_at.is_not(None))
-                .filter(Ticket.created_at >= dt_from)
-                .filter(Ticket.created_at < dt_to)
-                .scalar()
+                .filter(
+                    Ticket.first_response_at.is_not(None),
+                    Ticket.created_at.is_not(None),
+                    Ticket.created_at >= dt_from,
+                    Ticket.created_at < dt_to,
+                )
+                .group_by(Ticket.group_id)
+                .all()
             )
+        }
 
-            if (
-                incoming_count == 0 and
-                closed_count == 0 and
-                carried_count == 0 and
-                not specialist_items
-            ):
+        result = []
+        for group_id, group_name in groups:
+            display_name = regions.get(group_id, group_name)
+            incoming_count = incoming_map.get(group_id, 0)
+            closed_count = closed_map.get(group_id, 0)
+            carried_count = carried_map.get(group_id, 0)
+            specialist_items = specialist_map.get(group_id, [])
+            avg_close_seconds = avg_close_map.get(group_id)
+            avg_response_seconds = avg_response_map.get(group_id)
+
+            if incoming_count == 0 and closed_count == 0 and carried_count == 0 and not specialist_items:
                 continue
 
-            result.append({
-                "region": group_name,
-                "incoming_count": incoming_count,
-                "closed_count": closed_count,
-                "carried_count": carried_count,
-                "specialist_items": specialist_items,
-                "avg_close_time": self.format_duration(avg_close_seconds),
-                "avg_response_time": self.format_duration(avg_response_seconds),
-            })
+            result.append(
+                {
+                    "region": display_name,
+                    "incoming_count": incoming_count,
+                    "closed_count": closed_count,
+                    "carried_count": carried_count,
+                    "specialist_items": specialist_items,
+                    "avg_close_time": self.format_duration(avg_close_seconds),
+                    "avg_response_time": self.format_duration(avg_response_seconds),
+                }
+            )
 
         return result
 
