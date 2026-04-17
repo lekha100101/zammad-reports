@@ -11,6 +11,7 @@
         Название приложения
         <input type="text" name="app_name" value="{{ app_settings.app_name }}">
       </label>
+      <input type="hidden" name="tz" value="{{ app_settings.tz }}">
       <label>
         DEBUG (0/1)
         <input type="number" min="0" max="1" step="1" name="debug" value="{{ app_settings.debug }}">

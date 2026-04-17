@@ -1,4 +1,5 @@
 import threading
+import json
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -81,6 +82,25 @@ def index(request: Request, db: Session = Depends(get_db)):
         "last_sync": local_time(last_sync.started_at, tz_name) if last_sync else None,
         "last_sync_count": last_sync.items_count if last_sync else 0,
     }
+    workload = ReportService(db).workload_report()
+    trend_rows = workload.get("trend", [])
+    trend_labels = [row["day"] for row in trend_rows]
+    trend_created = [row["created"] for row in trend_rows]
+    trend_closed = [row["closed"] for row in trend_rows]
+    trend_backlog = [row["backlog_trend"] for row in trend_rows]
+
+    chart_data = {
+        "status_labels": ["Открытые", "Закрытые", "Приостановленные"],
+        "status_values": [
+            summary["open_count"],
+            summary["closed_count"],
+            summary["suspended_count"],
+        ],
+        "trend_labels": trend_labels,
+        "trend_created": trend_created,
+        "trend_closed": trend_closed,
+        "trend_backlog": trend_backlog,
+    }
     sync_status = request.query_params.get("sync_status")
 
     return templates.TemplateResponse(
@@ -88,6 +108,7 @@ def index(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "summary": summary,
+            "chart_data_json": json.dumps(chart_data, ensure_ascii=False),
             "sync_status": sync_status,
             "current_user": request.state.current_user,
         },

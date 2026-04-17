@@ -33,6 +33,22 @@
   {% endif %}
 </article>
 
+<div class="grid cards">
+  <article>
+    <h3>Статусы тикетов</h3>
+    <canvas id="statusChart" height="220"></canvas>
+  </article>
+  <article>
+    <h3>Создано vs Закрыто (14 дней)</h3>
+    <canvas id="flowChart" height="220"></canvas>
+  </article>
+</div>
+
+<article>
+  <h3>Тренд backlog (14 дней)</h3>
+  <canvas id="backlogChart" height="120"></canvas>
+</article>
+
 <article>
   <h3>Синхронизация</h3>
 
@@ -43,4 +59,80 @@
   </form>
 
 </article>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (function () {
+    const payload = {{ chart_data_json | safe }};
+    if (!payload || !window.Chart) return;
+
+    const statusCtx = document.getElementById("statusChart");
+    if (statusCtx) {
+      new Chart(statusCtx, {
+        type: "doughnut",
+        data: {
+          labels: payload.status_labels,
+          datasets: [{
+            data: payload.status_values,
+            backgroundColor: ["#2f6bff", "#2ca856", "#f39c12"],
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+    }
+
+    const flowCtx = document.getElementById("flowChart");
+    if (flowCtx) {
+      new Chart(flowCtx, {
+        type: "line",
+        data: {
+          labels: payload.trend_labels,
+          datasets: [
+            {
+              label: "Создано",
+              data: payload.trend_created,
+              borderColor: "#2f6bff",
+              backgroundColor: "rgba(47, 107, 255, 0.15)",
+              tension: 0.25,
+            },
+            {
+              label: "Закрыто",
+              data: payload.trend_closed,
+              borderColor: "#2ca856",
+              backgroundColor: "rgba(44, 168, 86, 0.15)",
+              tension: 0.25,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+    }
+
+    const backlogCtx = document.getElementById("backlogChart");
+    if (backlogCtx) {
+      new Chart(backlogCtx, {
+        type: "bar",
+        data: {
+          labels: payload.trend_labels,
+          datasets: [{
+            label: "Backlog",
+            data: payload.trend_backlog,
+            backgroundColor: "#8e44ad",
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+    }
+  })();
+</script>
 {% endblock %}
