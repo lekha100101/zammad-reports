@@ -1,29 +1,38 @@
-import os
+import threading
+import json
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from app.auth import login_required_page
+from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
+from app.db import SessionLocal
 from app.models import SyncLog, Ticket, TicketState
+from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
+from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
-from fastapi.responses import HTMLResponse, RedirectResponse
 from app.services.sync_service import SyncService
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
+SYNC_LOCK = threading.Lock()
 
-def local_time(dt):
+def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
 
+    try:
+        target_tz = ZoneInfo(tz_name or "UTC")
+    except ZoneInfoNotFoundError:
+        target_tz = ZoneInfo("UTC")
+
     return (
         dt.replace(tzinfo=ZoneInfo("UTC"))
-        .astimezone(ZoneInfo("Asia/Almaty"))
+        .astimezone(target_tz)
         .strftime("%Y-%m-%d %H:%M:%S")
     )
 
@@ -33,6 +42,7 @@ def index(request: Request, db: Session = Depends(get_db)):
     open_names = ["open", "new"]
     closed_names = ["closed"]
     suspended_names = ["suspended"]
+    tz_name = get_app_setting(db, "tz")
 
     open_count = (
         db.query(func.count(Ticket.id))
@@ -69,15 +79,36 @@ def index(request: Request, db: Session = Depends(get_db)):
         "open_count": open_count,
         "closed_count": closed_count,
         "suspended_count": suspended_count,
-        "last_sync": local_time(last_sync.started_at) if last_sync else None,
+        "last_sync": local_time(last_sync.started_at, tz_name) if last_sync else None,
         "last_sync_count": last_sync.items_count if last_sync else 0,
     }
+    workload = ReportService(db).workload_report()
+    trend_rows = workload.get("trend", [])
+    trend_labels = [row["day"] for row in trend_rows]
+    trend_created = [row["created"] for row in trend_rows]
+    trend_closed = [row["closed"] for row in trend_rows]
+    trend_backlog = [row["backlog_trend"] for row in trend_rows]
+
+    chart_data = {
+        "status_labels": ["Открытые", "Приостановленные"],
+        "status_values": [
+            summary["open_count"],
+            summary["suspended_count"],
+        ],
+        "trend_labels": trend_labels,
+        "trend_created": trend_created,
+        "trend_closed": trend_closed,
+        "trend_backlog": trend_backlog,
+    }
+    sync_status = request.query_params.get("sync_status")
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "summary": summary,
+            "chart_data_json": json.dumps(chart_data, ensure_ascii=False),
+            "sync_status": sync_status,
             "current_user": request.state.current_user,
         },
     )
@@ -167,13 +198,151 @@ def regional_summary(
     )
 
 
+@router.get("/reports/sla", response_class=HTMLResponse)
+@login_required_page
+def sla_report(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    rows = ReportService(db).sla_report(date_from, date_to)
+    return templates.TemplateResponse(
+        "sla_report.html",
+        {
+            "request": request,
+            "rows": rows,
+            "date_from": date_from,
+            "date_to": date_to,
+            "current_user": request.state.current_user,
+            "sla_response_minutes": get_metric_int(db, "sla_response_minutes"),
+            "sla_resolution_hours": get_metric_int(db, "sla_resolution_hours"),
+        },
+    )
+
+
+@router.get("/reports/workload", response_class=HTMLResponse)
+@login_required_page
+def workload_report(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    data = ReportService(db).workload_report(date_from, date_to)
+    return templates.TemplateResponse(
+        "workload_report.html",
+        {
+            "request": request,
+            "agent_rows": data["agents"],
+            "trend_rows": data["trend"],
+            "date_from": date_from,
+            "date_to": date_to,
+            "current_user": request.state.current_user,
+            "workload_open_warning": get_metric_int(db, "workload_open_warning"),
+            "workload_open_critical": get_metric_int(db, "workload_open_critical"),
+            "backlog_delta_warning": get_metric_int(db, "backlog_delta_warning"),
+        },
+    )
+
+
+@router.get("/admin/report-metrics", response_class=HTMLResponse)
+@admin_required_page
+def report_metrics_settings(request: Request, db: Session = Depends(get_db)):
+    metrics = get_metric_settings(db)
+    return templates.TemplateResponse(
+        "metrics_settings.html",
+        {"request": request, "metrics": metrics, "current_user": request.state.current_user},
+    )
+
+
+@router.post("/admin/report-metrics")
+@admin_required_page
+def report_metrics_settings_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    sla_response_minutes: str = Form(""),
+    sla_resolution_hours: str = Form(""),
+    workload_open_warning: str = Form(""),
+    workload_open_critical: str = Form(""),
+    backlog_delta_warning: str = Form(""),
+):
+    update_metric_settings(
+        db,
+        {
+            "sla_response_minutes": sla_response_minutes,
+            "sla_resolution_hours": sla_resolution_hours,
+            "workload_open_warning": workload_open_warning,
+            "workload_open_critical": workload_open_critical,
+            "backlog_delta_warning": backlog_delta_warning,
+        },
+    )
+    return RedirectResponse("/admin/report-metrics", status_code=302)
+
+
+@router.get("/admin/settings", response_class=HTMLResponse)
+@admin_required_page
+def app_settings_page(request: Request, db: Session = Depends(get_db)):
+    app_settings = get_app_settings(db)
+    return templates.TemplateResponse(
+        "app_settings.html",
+        {
+            "request": request,
+            "app_settings": app_settings,
+            "current_user": request.state.current_user,
+        },
+    )
+
+
+@router.post("/admin/settings")
+@admin_required_page
+def app_settings_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    app_name: str = Form(""),
+    debug: str = Form("0"),
+    zammad_url: str = Form(""),
+    zammad_token: str = Form(""),
+    zammad_verify_ssl: str = Form("1"),
+    zammad_per_page: str = Form("100"),
+    tz: str = Form(""),
+    sync_token: str = Form(""),
+):
+    update_app_settings(
+        db,
+        {
+            "app_name": app_name,
+            "debug": debug,
+            "zammad_url": zammad_url,
+            "zammad_token": zammad_token,
+            "zammad_verify_ssl": zammad_verify_ssl,
+            "zammad_per_page": zammad_per_page,
+            "tz": tz,
+            "sync_token": sync_token,
+        },
+    )
+    return RedirectResponse("/admin/settings", status_code=302)
+
+
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):
-    sync_service = SyncService(
-        db,
-        os.getenv("ZAMMAD_URL"),
-        os.getenv("ZAMMAD_TOKEN"),
-    )
-    sync_service.sync_all()
-    return RedirectResponse("/", status_code=302)
+    if SYNC_LOCK.locked():
+        return RedirectResponse("/?sync_status=already_running", status_code=302)
+
+    def _sync_job():
+        if not SYNC_LOCK.acquire(blocking=False):
+            return
+        bg_db = SessionLocal()
+        try:
+            zammad_url = get_app_setting(bg_db, "zammad_url")
+            zammad_token = get_app_setting(bg_db, "zammad_token")
+            if not zammad_url or not zammad_token:
+                return
+            SyncService(bg_db, zammad_url, zammad_token).sync_all()
+        finally:
+            bg_db.close()
+            SYNC_LOCK.release()
+
+    threading.Thread(target=_sync_job, daemon=True).start()
+    return RedirectResponse("/?sync_status=started", status_code=302)
