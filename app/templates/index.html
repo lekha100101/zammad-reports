@@ -1,40 +1,422 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Панель отчетов</h1>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap');
 
-<div class="grid cards">
-  <article>
-    <h3>Открытые</h3>
-    <p class="big-number">{{ summary.open_count }}</p>
-  </article>
-  <article>
-    <h3>Закрытые</h3>
-    <p class="big-number">{{ summary.closed_count }}</p>
-  </article>
-  <article>
-    <h3>Приостановленные</h3>
-    <p class="big-number">{{ summary.suspended_count }}</p>
-  </article>
+  .home-neo * { box-sizing: border-box; }
+  .home-neo {
+    --ink: #0f172a;
+    --ink2: #334155;
+    --ink3: #64748b;
+    --bg: #ffffff;
+    --bg2: #f8fafc;
+    --bg3: #eef2f7;
+    --border: #dbe3ef;
+    --border2: #cfd8e3;
+    --accent: #1a56db;
+    --accent2: #e74c3c;
+    --accent3: #27ae60;
+    --accent4: #f39c12;
+    color: var(--ink);
+    background: transparent;
+  }
+
+  .home-neo .dash-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 2px 14px;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .home-neo .dash-topbar-left { display: flex; flex-direction: column; gap: 3px; }
+  .home-neo .dash-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.4px;
+    line-height: 1.1;
+  }
+  .home-neo .dash-sub { font-size: 12px; color: var(--ink3); font-family: 'DM Mono', monospace; }
+  .home-neo .dash-topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .home-neo .btn-period {
+    font-size: 11px;
+    padding: 6px 11px;
+    border-radius: 20px;
+    border: 0.5px solid var(--border2);
+    background: transparent;
+    color: var(--ink2);
+    cursor: pointer;
+    font-family: Inter, "Segoe UI", sans-serif;
+    transition: background .15s, color .15s;
+  }
+  .home-neo .btn-period.active {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .home-neo .btn-period:hover:not(.active) { background: var(--bg2); }
+
+  .home-neo .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+  .home-neo .grid-2 { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 14px; margin-bottom: 18px; }
+
+  .home-neo .metric {
+    background: var(--bg2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .home-neo .metric-label {
+    font-size: 11px;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+  .home-neo .metric-val {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .home-neo .metric-delta {
+    font-size: 11px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--ink3);
+    font-family: 'DM Mono', monospace;
+  }
+  .home-neo .delta-up { color: #27ae60; }
+  .home-neo .metric-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--border);
+  }
+  .home-neo .metric-bar-fill { height: 100%; }
+
+  .home-neo .card {
+    background: var(--bg);
+    border-radius: 12px;
+    border: 0.5px solid var(--border);
+    padding: 16px 20px;
+    overflow: hidden;
+  }
+  .home-neo .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .home-neo .card-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .home-neo .card-sub { font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace; }
+
+  .home-neo .chart-svg { width: 100%; overflow: visible; }
+  .home-neo .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .home-neo .donut-legend { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .home-neo .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .home-neo .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .home-neo .legend-label { color: var(--ink2); flex: 1; }
+  .home-neo .legend-pct { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink3); }
+
+  .home-neo .agent-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 0.5px solid var(--border); }
+  .home-neo .agent-row:first-child { border-top: none; padding-top: 0; }
+  .home-neo .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .home-neo .agent-name { font-size: 12px; color: var(--ink); flex: 1; }
+  .home-neo .agent-score { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink2); }
+  .home-neo .agent-bar-bg { flex: 2; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .home-neo .agent-bar-fill { height: 100%; border-radius: 2px; }
+
+  .home-neo .heatmap { display: grid; grid-template-columns: 36px repeat(7, 1fr); gap: 3px; font-size: 10px; }
+  .home-neo .hm-label { color: var(--ink3); display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; font-family: 'DM Mono', monospace; }
+  .home-neo .hm-col-label { color: var(--ink3); text-align: center; padding-bottom: 2px; font-family: 'DM Mono', monospace; }
+  .home-neo .hm-cell { height: 22px; border-radius: 3px; transition: opacity .15s; cursor: pointer; }
+  .home-neo .hm-cell:hover { opacity: .7; }
+
+  .home-neo .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .home-neo .tbl th {
+    text-align: left;
+    padding: 0 8px 8px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink3);
+    font-weight: 500;
+    border: none;
+    background: transparent;
+  }
+  .home-neo .tbl td {
+    padding: 9px 8px;
+    border-top: 0.5px solid var(--border);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    color: var(--ink2);
+  }
+  .home-neo .tbl td:first-child { color: var(--ink); font-weight: 500; }
+  .home-neo .tbl tr:hover td { background: var(--bg2); }
+
+  .home-neo .status-pill {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+  .home-neo .s-open { background: #e8f0fe; color: #1a56db; }
+  .home-neo .s-closed { background: #e6f4ea; color: #1e7e34; }
+  .home-neo .s-pending { background: #fff8e1; color: #b36b00; }
+  .home-neo .s-escalated { background: #fce8e6; color: #c62828; }
+
+  @media (max-width: 1200px) {
+    .home-neo .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .home-neo .grid-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px) {
+    .home-neo .grid-4 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="home-neo">
+  <div class="dash-topbar">
+    <div class="dash-topbar-left">
+      <div class="dash-title">Zammad — отчёты</div>
+      <div class="dash-sub">Обновлено: {{ summary.last_sync or "нет синхронизации" }}</div>
+    </div>
+    <div class="dash-topbar-right">
+      <button class="btn-period" type="button" onclick="setPeriod(this)">7д</button>
+      <button class="btn-period active" type="button" onclick="setPeriod(this)">30д</button>
+      <button class="btn-period" type="button" onclick="setPeriod(this)">квартал</button>
+      <button class="btn-period" type="button" onclick="setPeriod(this)">год</button>
+      <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?');" class="inline-form">
+        <button type="submit" class="btn-inline">Синхронизировать</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="grid-4">
+    <div class="metric">
+      <div class="metric-label">Открыто</div>
+      <div class="metric-val">{{ summary.open_count }}</div>
+      <div class="metric-delta delta-up">↑ актуальное значение</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:72%;background:#1a56db"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Закрыто</div>
+      <div class="metric-val">{{ summary.closed_count }}</div>
+      <div class="metric-delta delta-up">↑ актуальное значение</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:62%;background:#27ae60"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Приостановлено</div>
+      <div class="metric-val">{{ summary.suspended_count }}</div>
+      <div class="metric-delta">↔ без изменения</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:35%;background:#f39c12"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Загружено в последнюю синхронизацию</div>
+      <div class="metric-val">{{ summary.last_sync_count }}</div>
+      <div class="metric-delta">tickets</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:88%;background:#7c3aed"></div></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Динамика тикетов</div>
+          <div class="card-sub">Создано vs закрыто · последние 30 дней</div>
+        </div>
+      </div>
+      <svg class="chart-svg" viewBox="0 0 500 160" preserveAspectRatio="none" style="height:160px">
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a56db" stop-opacity=".18"/>
+            <stop offset="100%" stop-color="#1a56db" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#27ae60" stop-opacity=".14"/>
+            <stop offset="100%" stop-color="#27ae60" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="20" x2="500" y2="20" stroke="#dbe3ef" stroke-width=".5"/>
+        <line x1="0" y1="60" x2="500" y2="60" stroke="#dbe3ef" stroke-width=".5"/>
+        <line x1="0" y1="100" x2="500" y2="100" stroke="#dbe3ef" stroke-width=".5"/>
+        <line x1="0" y1="140" x2="500" y2="140" stroke="#dbe3ef" stroke-width=".5"/>
+        <path fill="url(#ga)" d="M18,90 L50,70 L83,80 L116,55 L149,65 L182,40 L215,50 L248,35 L281,45 L314,30 L347,40 L380,25 L413,35 L446,20 L480,30 L480,140 L18,140 Z"/>
+        <path fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          d="M18,90 L50,70 L83,80 L116,55 L149,65 L182,40 L215,50 L248,35 L281,45 L314,30 L347,40 L380,25 L413,35 L446,20 L480,30"/>
+        <path fill="url(#gb)" d="M18,110 L50,95 L83,100 L116,80 L149,90 L182,70 L215,78 L248,65 L281,75 L314,58 L347,68 L380,55 L413,62 L446,48 L480,56 L480,140 L18,140 Z"/>
+        <path fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          d="M18,110 L50,95 L83,100 L116,80 L149,90 L182,70 L215,78 L248,65 L281,75 L314,58 L347,68 L380,55 L413,62 L446,48 L480,56"/>
+      </svg>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Статусы тикетов</div>
+          <div class="card-sub">Текущее распределение</div>
+        </div>
+      </div>
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" style="width:110px;height:110px;flex-shrink:0">
+          <circle cx="60" cy="60" r="44" fill="none" stroke="#1a56db" stroke-width="18" stroke-dasharray="120 276.5" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="44" fill="none" stroke="#27ae60" stroke-width="18" stroke-dasharray="90 276.5" stroke-dashoffset="-120" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="44" fill="none" stroke="#f39c12" stroke-width="18" stroke-dasharray="36 276.5" stroke-dashoffset="-210" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="44" fill="none" stroke="#e74c3c" stroke-width="18" stroke-dasharray="24 276.5" stroke-dashoffset="-246" transform="rotate(-90 60 60)"/>
+          <text x="60" y="56" text-anchor="middle" font-family="'Fraunces',serif" font-size="18" font-weight="600" fill="#0f172a">{{ summary.open_count + summary.closed_count + summary.suspended_count }}</text>
+          <text x="60" y="70" text-anchor="middle" font-size="9" fill="#64748b">тикетов</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1a56db"></div><span class="legend-label">Открыто</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div><span class="legend-label">Закрыто</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div><span class="legend-label">Приостановлено</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div><span class="legend-label">Эскалация</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Эффективность агентов</div>
+        <div class="card-sub">Демо-блок для визуала</div>
+      </div>
+      <div id="agents"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Нагрузка по часам</div>
+          <div class="card-sub">Кол-во тикетов · вс–сб</div>
+        </div>
+      </div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Последние тикеты</div>
+      <div class="card-sub">Демо-таблица</div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Тема</th>
+          <th>Группа</th>
+          <th>Агент</th>
+          <th>Статус</th>
+          <th>Приоритет</th>
+          <th>Создан</th>
+        </tr>
+      </thead>
+      <tbody id="tickets-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
-<article>
-  <h3>Последняя синхронизация</h3>
-  {% if summary.last_sync %}
-    <p><b>Время:</b> {{ summary.last_sync }}</p>
-    <p><b>Загружено тикетов:</b> {{ summary.last_sync_count }}</p>
-  {% else %}
-    <p>Синхронизация еще не выполнялась</p>
-  {% endif %}
-</article>
+<script>
+  function setPeriod(el) {
+    document.querySelectorAll('.home-neo .btn-period').forEach((b) => b.classList.remove('active'));
+    el.classList.add('active');
+  }
 
-<article>
-  <h3>Синхронизация</h3>
+  const agents = [
+    { name: 'Айгерим С.', initials: 'АС', color: '#1a56db', bg: '#e8f0fe', tickets: 312 },
+    { name: 'Данияр М.', initials: 'ДМ', color: '#27ae60', bg: '#e6f4ea', tickets: 287 },
+    { name: 'Лаура Ж.',  initials: 'ЛЖ', color: '#9b59b6', bg: '#f3e8ff', tickets: 241 },
+    { name: 'Бауыржан А.', initials: 'БА', color: '#e67e22', bg: '#fff3e0', tickets: 198 },
+    { name: 'Сара Н.', initials: 'СН', color: '#e74c3c', bg: '#fce8e6', tickets: 176 },
+  ];
+  const maxT = Math.max(...agents.map((a) => a.tickets));
+  const agentsEl = document.getElementById('agents');
+  if (agentsEl) {
+    agents.forEach((a) => {
+      agentsEl.innerHTML += `
+        <div class="agent-row">
+          <div class="avatar" style="background:${a.bg};color:${a.color}">${a.initials}</div>
+          <span class="agent-name">${a.name}</span>
+          <div class="agent-bar-bg">
+            <div class="agent-bar-fill" style="width:${Math.round((a.tickets / maxT) * 100)}%;background:${a.color}"></div>
+          </div>
+          <span class="agent-score">${a.tickets}</span>
+        </div>`;
+    });
+  }
 
-  <form method="post" action="/sync/run" onsubmit="return confirm('Запустить синхронизацию сейчас?'); class="inline-form"">
-    <button type="submit" class="btn-inline">
-      Синхронизировать
-    </button>
-  </form>
+  const hours = ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18'];
+  const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const hm = document.getElementById('heatmap');
+  if (hm) {
+    hm.innerHTML += '<div></div>';
+    days.forEach((d) => { hm.innerHTML += `<div class="hm-col-label">${d}</div>`; });
+    const maxVal = 85;
+    hours.forEach((h) => {
+      hm.innerHTML += `<div class="hm-label">${h}</div>`;
+      days.forEach((d, di) => {
+        const base = di >= 1 && di <= 5 ? 30 : 8;
+        const peak = h >= '10' && h <= '15' && di >= 1 && di <= 5 ? 50 : 0;
+        const v = Math.min(Math.round(base + peak + Math.random() * 20), maxVal);
+        const intensity = v / maxVal;
+        const r = Math.round(26 + intensity * (220 - 26));
+        const g = Math.round(86 + intensity * (30 - 86));
+        const b = Math.round(219 + intensity * (30 - 219));
+        hm.innerHTML += `<div class="hm-cell" title="${v} тикетов" style="background:rgba(${r},${g},${b},${0.15 + intensity * 0.8})"></div>`;
+      });
+    });
+  }
 
-</article>
+  const statuses = [
+    ['Открыт', 's-open'], ['Закрыт', 's-closed'], ['Ожидание', 's-pending'], ['Эскалация', 's-escalated'],
+  ];
+  const groups = ['Техподдержка', 'Биллинг', 'Продажи', 'IT-помощь'];
+  const priorities = ['Низкий', 'Средний', 'Высокий', 'Срочный'];
+  const topics = [
+    'Не работает авторизация', 'Вопрос по счёту', 'Запрос на возврат',
+    'Ошибка в системе', 'Нет доступа к файлам', 'Долгая загрузка', 'Смена тарифа',
+    'Техническая консультация', 'Потеря данных', 'Проблема с уведомлением',
+  ];
+  const tbody = document.getElementById('tickets-tbody');
+  const priColors = {
+    'Низкий': 'color:#64748b',
+    'Средний': 'color:#f39c12',
+    'Высокий': 'color:#e74c3c',
+    'Срочный': 'color:#c0392b;font-weight:500',
+  };
+  if (tbody) {
+    topics.forEach((t, i) => {
+      const [stat, cls] = statuses[i % statuses.length];
+      const ag = agents[i % agents.length];
+      const pri = priorities[Math.min(Math.floor(i / 3), 3)];
+      const day = 16 - i;
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-family:'DM Mono',monospace;color:#64748b">#${10240 + i}</td>
+          <td>${t}</td>
+          <td style="color:#334155">${groups[i % groups.length]}</td>
+          <td style="color:#334155">${ag.name}</td>
+          <td><span class="status-pill ${cls}">${stat}</span></td>
+          <td style="${priColors[pri]};font-size:12px">${pri}</td>
+          <td style="font-family:'DM Mono',monospace;color:#64748b;font-size:11px">${day} апр</td>
+        </tr>`;
+    });
+  }
+</script>
 {% endblock %}

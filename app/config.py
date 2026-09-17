@@ -21,6 +21,9 @@ class Settings(BaseModel):
     zammad_verify_ssl: bool = to_bool(os.getenv("ZAMMAD_VERIFY_SSL"), True)
     zammad_per_page: int = int(os.getenv("ZAMMAD_PER_PAGE", "100"))
 
+    sla_response_minutes: int = int(os.getenv("SLA_RESPONSE_MINUTES", "60"))
+    sla_resolution_hours: int = int(os.getenv("SLA_RESOLUTION_HOURS", "24"))
+
     database_url: str = os.getenv(
         "DATABASE_URL",
         "postgresql://postgres:postgres@localhost:5433/zammad_reports",
