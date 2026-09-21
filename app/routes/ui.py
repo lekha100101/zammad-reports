@@ -588,3 +588,26 @@ def engineer_sla_violations(
         "violation_type": violation_type, "current_user": request.state.current_user,
     })
 
+@router.get("/reports/engineers/tickets", response_class=HTMLResponse)
+@login_required_page
+def engineer_ticket_details(
+    request: Request, metric: str = Query(...),
+    date_from: str | None = Query(None), date_to: str | None = Query(None),
+    region: str | None = Query(None), group_id: str | None = Query(None),
+    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    gid = int(group_id) if group_id and group_id.isdigit() else None
+    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
+    service = ReportService(db)
+    rows = service.engineer_ticket_details(metric, date_from, date_to, region, gid, eid, oid)
+    titles = {
+        "assigned": "Назначенные заявки", "closed": "Закрытые заявки",
+        "open": "Открытые заявки", "new": "Новые заявки",
+    }
+    return templates.TemplateResponse("engineer_ticket_details.html", {
+        "request": request, "rows": rows, "title": titles.get(metric, "Заявки"),
+        "metric": metric, "current_user": request.state.current_user,
+    })
+
