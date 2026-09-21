@@ -1451,3 +1451,76 @@ class ReportService:
         result.sort(key=lambda x: x["violation_seconds"], reverse=True)
         return result
 
+    def engineer_ticket_details(
+        self, metric, date_from=None, date_to=None, region=None,
+        group_id=None, engineer_id=None, organization_id=None,
+    ):
+        """Drilldown for assigned/closed/open/new counters in engineer report 3.1."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        closed_states = ["closed", "merged"]
+
+        query = (
+            self.db.query(Ticket, TicketState.name.label("state_name"))
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+        )
+
+        if metric == "closed":
+            query = query.filter(Ticket.close_at.is_not(None))
+            query = query.filter(func.lower(TicketState.name).in_(closed_states))
+            if dt_from:
+                query = query.filter(Ticket.close_at >= dt_from)
+            if dt_to:
+                query = query.filter(Ticket.close_at < dt_to)
+        else:
+            if dt_from:
+                query = query.filter(Ticket.created_at >= dt_from)
+            if dt_to:
+                query = query.filter(Ticket.created_at < dt_to)
+            if metric == "open":
+                query = query.filter(func.lower(TicketState.name) == "open")
+            elif metric == "new":
+                query = query.filter(func.lower(TicketState.name) == "new")
+            elif metric != "assigned":
+                return []
+
+        if group_id:
+            query = query.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
+
+        result = []
+        for ticket, state_name in query.all():
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            result.append({
+                "ticket_number": ticket.number or str(ticket.id),
+                "title": ticket.title or "",
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region,
+                "group": groups.get(ticket.group_id, "Без группы"),
+                "organization": organizations.get(ticket.organization_id, ""),
+                "state": state_name or "",
+                "created_at": ticket.created_at,
+                "close_at": ticket.close_at,
+            })
+
+        result.sort(
+            key=lambda x: (x["close_at"] if metric == "closed" else x["created_at"]) or datetime.min,
+            reverse=True,
+        )
+        return result
+
