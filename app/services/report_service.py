@@ -1239,10 +1239,11 @@ class ReportService:
             row["overdue"] += 1
 
         result = []
-        for row in stats.values():
+        for key, row in stats.items():
             avg_response = sum(row["response_seconds"]) / len(row["response_seconds"]) if row["response_seconds"] else None
             avg_resolution = sum(row["resolution_seconds"]) / len(row["resolution_seconds"]) if row["resolution_seconds"] else None
             result.append({
+                "engineer_id": key[0],
                 "engineer": row["engineer"], "region": row["region"], "group": row["group"],
                 "assigned": row["assigned"], "closed": row["closed"],
                 "open": row["open"], "new": row["new"],
