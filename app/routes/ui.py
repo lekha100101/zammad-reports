@@ -565,3 +565,26 @@ def engineer_overdue_tickets(
         "request": request, "rows": rows, "current_user": request.state.current_user,
     })
 
+@router.get("/reports/engineers/sla-violations", response_class=HTMLResponse)
+@login_required_page
+def engineer_sla_violations(
+    request: Request,
+    violation_type: str = Query(...),
+    date_from: str | None = Query(None), date_to: str | None = Query(None),
+    region: str | None = Query(None), group_id: str | None = Query(None),
+    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    gid = int(group_id) if group_id and group_id.isdigit() else None
+    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
+    service = ReportService(db)
+    rows = service.sla_violation_tickets(
+        violation_type, date_from, date_to, region, gid, eid, oid,
+    )
+    title = "Нарушения First Response SLA" if violation_type == "first_response" else "Нарушения Resolution SLA"
+    return templates.TemplateResponse("sla_violation_tickets.html", {
+        "request": request, "rows": rows, "title": title,
+        "violation_type": violation_type, "current_user": request.state.current_user,
+    })
+
