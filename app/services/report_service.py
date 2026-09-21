@@ -528,6 +528,40 @@ class ReportService:
 
         return result
 
+    def transfer_filter_options(self):
+        regions = (
+            self.db.query(ReportRegion.name)
+            .filter(ReportRegion.name.is_not(None))
+            .distinct()
+            .order_by(ReportRegion.name)
+            .all()
+        )
+        users = (
+            self.db.query(User.id, User.firstname, User.lastname, User.login)
+            .filter(User.active.is_(True))
+            .order_by(User.firstname, User.lastname, User.login)
+            .all()
+        )
+        organizations = (
+            self.db.query(Organization.id, Organization.name)
+            .order_by(Organization.name)
+            .all()
+        )
+        return {
+            "regions": [row[0] for row in regions if row[0]],
+            "engineers": [
+                {
+                    "id": row[0],
+                    "name": self._user_name(row[1], row[2], row[3]),
+                }
+                for row in users
+            ],
+            "organizations": [
+                {"id": row[0], "name": row[1] or str(row[0])}
+                for row in organizations
+            ],
+        }
+
     def ticket_transfers(
             self, date_from=None, date_to=None, region=None, engineer_id=None,
             organization_id=None, ticket_number=None, sort_by="transferred_at",
