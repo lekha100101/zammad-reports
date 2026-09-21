@@ -1564,3 +1564,126 @@ class ReportService:
         rows.sort(key=lambda x: x["violation_seconds"], reverse=True)
         return rows
 
+    def engineer_workload_details(
+        self, metric, date_from=None, date_to=None, region=None,
+        engineer_id=None, organization_id=None,
+    ):
+        """Ticket drilldown for engineer workload counters."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        closed_states = ["closed", "merged"]
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
+        rows = []
+
+        def add_ticket(ticket, state_name="", event_at=None, from_name=None, to_name=None):
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                return
+            rows.append({
+                "ticket_number": ticket.number or str(ticket.id),
+                "title": ticket.title or "",
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id or "")),
+                "region": display_region,
+                "group": groups.get(ticket.group_id, "Без группы"),
+                "organization": organizations.get(ticket.organization_id, ""),
+                "state": state_name or "",
+                "created_at": ticket.created_at,
+                "close_at": ticket.close_at,
+                "event_at": event_at,
+                "from_engineer": from_name or "",
+                "to_engineer": to_name or "",
+            })
+
+        if metric in ("assigned", "transferred_in", "transferred_out"):
+            q = (
+                self.db.query(TicketHistory, Ticket)
+                .join(Ticket, Ticket.id == TicketHistory.ticket_id)
+                .filter(TicketHistory.object == "Ticket")
+                .filter(TicketHistory.attribute == "owner")
+                .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+            )
+            if dt_from:
+                q = q.filter(TicketHistory.created_at >= dt_from)
+            if dt_to:
+                q = q.filter(TicketHistory.created_at < dt_to)
+            if organization_id:
+                q = q.filter(Ticket.organization_id == organization_id)
+
+            if metric == "assigned":
+                q = q.filter(TicketHistory.id_to.is_not(None), TicketHistory.id_to != 1)
+                if engineer_id:
+                    q = q.filter(TicketHistory.id_to == engineer_id)
+            elif metric == "transferred_in":
+                q = q.filter(
+                    TicketHistory.id_to.is_not(None), TicketHistory.id_to != 1,
+                    TicketHistory.id_from.is_not(None), TicketHistory.id_from != 1,
+                    TicketHistory.id_from != TicketHistory.id_to,
+                )
+                if engineer_id:
+                    q = q.filter(TicketHistory.id_to == engineer_id)
+            else:
+                q = q.filter(
+                    TicketHistory.id_from.is_not(None), TicketHistory.id_from != 1,
+                    TicketHistory.id_from != TicketHistory.id_to,
+                )
+                if engineer_id:
+                    q = q.filter(TicketHistory.id_from == engineer_id)
+
+            for h, ticket in q.all():
+                add_ticket(
+                    ticket, event_at=h.created_at,
+                    from_name=users.get(h.id_from, h.value_from or str(h.id_from or "")),
+                    to_name=users.get(h.id_to, h.value_to or str(h.id_to or "")),
+                )
+
+        elif metric == "closed":
+            q = (
+                self.db.query(Ticket, TicketState.name.label("state_name"))
+                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+                .filter(Ticket.close_at.is_not(None))
+                .filter(func.lower(TicketState.name).in_(closed_states))
+                .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+            )
+            if dt_from:
+                q = q.filter(Ticket.close_at >= dt_from)
+            if dt_to:
+                q = q.filter(Ticket.close_at < dt_to)
+            if engineer_id:
+                q = q.filter(Ticket.owner_id == engineer_id)
+            if organization_id:
+                q = q.filter(Ticket.organization_id == organization_id)
+            for ticket, state_name in q.all():
+                add_ticket(ticket, state_name)
+
+        elif metric in ("open_now", "overdue_now"):
+            resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
+            now = datetime.utcnow()
+            q = (
+                self.db.query(Ticket, TicketState.name.label("state_name"))
+                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+                .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+                .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+                .filter(or_(TicketState.name.is_(None), func.lower(TicketState.name) != "suspended"))
+                .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+            )
+            if engineer_id:
+                q = q.filter(Ticket.owner_id == engineer_id)
+            if organization_id:
+                q = q.filter(Ticket.organization_id == organization_id)
+            for ticket, state_name in q.all():
+                if metric == "overdue_now":
+                    if not ticket.created_at:
+                        continue
+                    if (now - ticket.created_at).total_seconds() <= resolution_limit:
+                        continue
+                add_ticket(ticket, state_name)
+
+        rows.sort(key=lambda x: x["event_at"] or x["close_at"] or x["created_at"] or datetime.min, reverse=True)
+        return rows
+
