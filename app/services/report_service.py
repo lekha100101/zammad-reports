@@ -3,10 +3,18 @@ from sqlalchemy import and_, case, cast, Date, func, or_
 from sqlalchemy.orm import Session, aliased
 
 from app.models import Ticket, User, Group, Organization, TicketState, ReportRegion, TicketHistory
+
+# Zammad states excluded from business reporting.
+# 8 = "Не актуально" (system state type is closed, but it must not affect reports).
+EXCLUDED_REPORT_STATE_IDS = (8,)
 from app.services.metric_settings_service import get_metric_int
 
 
 class ReportService:
+    @staticmethod
+    def _exclude_report_states(query):
+        return query.filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -35,6 +43,7 @@ class ReportService:
                 func.count(Ticket.id)
             )
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
 
         dt_from = self._parse_date_start(date_from)
@@ -61,6 +70,7 @@ class ReportService:
                 func.count(Ticket.id)
             )
             .join(Ticket, Ticket.owner_id == User.id)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
 
         dt_from = self._parse_date_start(date_from)
@@ -121,6 +131,7 @@ class ReportService:
                 func.count(Ticket.id)
             )
             .join(Ticket, Ticket.organization_id == Organization.id)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
 
         dt_from = self._parse_date_start(date_from)
@@ -211,6 +222,7 @@ class ReportService:
                 .filter(Ticket.created_at < period_end_inclusive)
                 .filter((Ticket.close_at.is_(None)) | (Ticket.close_at >= period_end_inclusive))
                 .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_statuses)))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
                 .group_by(Ticket.group_id)
                 .all()
             )
@@ -399,6 +411,7 @@ class ReportService:
             .join(Ticket, Ticket.owner_id == User.id)
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
             .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_statuses)))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
 
         if dt_from:
@@ -446,6 +459,7 @@ class ReportService:
             .filter(Ticket.close_at >= trend_from)
             .filter(Ticket.close_at < trend_to)
             .filter(func.lower(TicketState.name).in_(closed_statuses))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
             .group_by(cast(Ticket.close_at, Date))
             .all()
         )
@@ -897,6 +911,7 @@ class ReportService:
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
             .filter(Ticket.close_at.is_not(None))
             .filter(func.lower(TicketState.name).in_(closed_states))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
             .filter(~Ticket.state_id.in_(excluded_state_ids))
         )
         if dt_from:
@@ -991,6 +1006,7 @@ class ReportService:
             .filter(Ticket.created_at.is_not(None))
             .filter(Ticket.close_at >= Ticket.created_at)
             .filter(func.lower(TicketState.name).in_(closed_states))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
             .filter(Ticket.owner_id.is_not(None))
             .filter(Ticket.owner_id != 1)
         )
@@ -1042,6 +1058,7 @@ class ReportService:
                 .filter(Ticket.close_at.is_not(None), Ticket.created_at.is_not(None))
                 .filter(Ticket.close_at >= Ticket.created_at)
                 .filter(func.lower(TicketState.name).in_(closed_states))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
             )
             group_id = next(
                 (
@@ -1087,7 +1104,7 @@ class ReportService:
         response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
         resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
         closed_states = ["closed", "merged"]
-        excluded_state_ids = [8]  # Zammad: "Не актуально"
+        excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
         open_states = ["open"]
         new_states = ["new"]
 
@@ -1175,6 +1192,7 @@ class ReportService:
             .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
             .filter(Ticket.close_at.is_not(None))
             .filter(func.lower(TicketState.name).in_(closed_states))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if dt_from:
             cq = cq.filter(Ticket.close_at >= dt_from)
@@ -1295,7 +1313,7 @@ class ReportService:
         """Current overdue backlog using configured Resolution SLA."""
         resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
         closed_states = ["closed", "merged"]
-        excluded_state_ids = [8]  # Zammad: "Не актуально"
+        excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
         now = datetime.utcnow()
 
         query = (
