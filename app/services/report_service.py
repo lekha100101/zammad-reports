@@ -713,3 +713,94 @@ class ReportService:
             for row in rows
         ]
 
+    def returned_tickets(
+        self,
+        date_from=None,
+        date_to=None,
+        region=None,
+        engineer_id=None,
+        organization_id=None,
+        ticket_number=None,
+    ):
+        """Return owner changes where a ticket is assigned back to a previous owner.
+
+        Operational definition: A -> B -> A (or any later reassignment to an owner
+        who already owned the ticket). Initial assignment from owner id 1 is ignored.
+        """
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+
+        query = (
+            self.db.query(TicketHistory)
+            .filter(TicketHistory.object == "Ticket")
+            .filter(TicketHistory.attribute == "owner")
+            .filter(TicketHistory.id_from.is_not(None))
+            .filter(TicketHistory.id_to.is_not(None))
+            .filter(TicketHistory.id_from != TicketHistory.id_to)
+            .order_by(TicketHistory.ticket_id.asc(), TicketHistory.created_at.asc(), TicketHistory.id.asc())
+        )
+
+        histories = query.all()
+        ticket_ids = {h.ticket_id for h in histories}
+        tickets = {
+            t.id: t
+            for t in self.db.query(Ticket).filter(Ticket.id.in_(ticket_ids)).all()
+        } if ticket_ids else {}
+        user_ids = {
+            value
+            for h in histories
+            for value in (h.id_from, h.id_to, h.created_by_id)
+            if value is not None
+        }
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).filter(User.id.in_(user_ids)).all()
+        } if user_ids else {}
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
+
+        seen_owners = {}
+        result = []
+        for h in histories:
+            seen = seen_owners.setdefault(h.ticket_id, set())
+            if h.id_from not in (None, 1):
+                seen.add(h.id_from)
+
+            is_return = h.id_to not in (None, 1) and h.id_to in seen
+            seen.add(h.id_to)
+
+            if not is_return:
+                continue
+            if dt_from and (not h.created_at or h.created_at < dt_from):
+                continue
+            if dt_to and (not h.created_at or h.created_at >= dt_to):
+                continue
+
+            ticket = tickets.get(h.ticket_id)
+            if not ticket:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            if engineer_id and h.id_to != engineer_id:
+                continue
+            if organization_id and ticket.organization_id != organization_id:
+                continue
+            if ticket_number and ticket_number.strip().lower() not in (ticket.number or "").lower():
+                continue
+
+            result.append({
+                "ticket_number": ticket.number or str(ticket.id),
+                "title": ticket.title or "",
+                "region": display_region,
+                "from_engineer": users.get(h.id_from, h.value_from or str(h.id_from)),
+                "returned_to": users.get(h.id_to, h.value_to or str(h.id_to)),
+                "returned_at": h.created_at,
+                "initiator": users.get(h.created_by_id, str(h.created_by_id) if h.created_by_id else ""),
+                "organization": organizations.get(ticket.organization_id, ""),
+            })
+
+        result.sort(key=lambda row: row["returned_at"] or datetime.min, reverse=True)
+        return result
+
