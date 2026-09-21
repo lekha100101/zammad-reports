@@ -22,7 +22,7 @@
 <td>{{ row.assigned }}</td><td>{{ row.closed }}</td><td>{{ row.open }}</td><td>{{ row.new }}</td>
 <td>{{ row.avg_first_response }}</td><td>{{ row.first_response_sla_pct if row.first_response_sla_pct is not none else '—' }}</td>
 <td>{{ row.avg_resolution }}</td><td>{{ row.resolution_sla_pct if row.resolution_sla_pct is not none else '—' }}</td>
-<td>{{ row.response_violations }}</td><td>{{ row.resolution_violations }}</td><td>{{ row.overdue }}</td>
+<td>{{ row.response_violations }}</td><td>{{ row.resolution_violations }}</td><td>{% if row.overdue %}<a href="/reports/engineers/overdue?engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if group_id %}&group_id={{ group_id }}{% endif %}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}">{{ row.overdue }}</a>{% else %}0{% endif %}</td>
 </tr>{% endfor %}
 {% if not rows %}<tr><td colspan="14" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
