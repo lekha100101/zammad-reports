@@ -869,6 +869,7 @@ class ReportService:
                 "transferred_out": 0,
                 "closed": 0,
                 "open_now": 0,
+                "overdue_now": 0,
             })
             item["assigned"] += 1
             if h.id_from not in (None, 1):
@@ -903,7 +904,7 @@ class ReportService:
                 "engineer": users.get(h.id_from, h.value_from or str(h.id_from)),
                 "region": display_region,
                 "assigned": 0, "transferred_in": 0, "transferred_out": 0,
-                "closed": 0, "open_now": 0,
+                "closed": 0, "open_now": 0, "overdue_now": 0,
             })
             item["transferred_out"] += 1
 
@@ -935,11 +936,14 @@ class ReportService:
                 "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
                 "region": display_region,
                 "assigned": 0, "transferred_in": 0, "transferred_out": 0,
-                "closed": 0, "open_now": 0,
+                "closed": 0, "open_now": 0, "overdue_now": 0,
             })
             item["closed"] += 1
 
-        # Current open backlog by engineer/region.
+        # Current active backlog by engineer/region. Suspended tickets are not
+        # treated as workload while they are paused.
+        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
+        backlog_reference = datetime.utcnow()
         openq = (
             self.db.query(Ticket)
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
@@ -963,9 +967,11 @@ class ReportService:
                 "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
                 "region": display_region,
                 "assigned": 0, "transferred_in": 0, "transferred_out": 0,
-                "closed": 0, "open_now": 0,
+                "closed": 0, "open_now": 0, "overdue_now": 0,
             })
             item["open_now"] += 1
+            if ticket.created_at and (backlog_reference - ticket.created_at).total_seconds() > resolution_limit:
+                item["overdue_now"] += 1
 
         rows = list(stats.values())
         for row in rows:
