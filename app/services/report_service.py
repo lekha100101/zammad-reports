@@ -1322,6 +1322,7 @@ class ReportService:
             .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
             .filter(Ticket.created_at.is_not(None))
             .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if group_id:
             query = query.filter(Ticket.group_id == group_id)
