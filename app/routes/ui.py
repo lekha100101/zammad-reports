@@ -657,3 +657,32 @@ def overdue_report(
         "organization_id": oid, "current_user": request.state.current_user,
     })
 
+@router.get("/reports/engineer-workload/details", response_class=HTMLResponse)
+@login_required_page
+def engineer_workload_details(
+    request: Request, metric: str = Query(...),
+    date_from: str | None = Query(None), date_to: str | None = Query(None),
+    region: str | None = Query(None), engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
+    service = ReportService(db)
+    rows = service.engineer_workload_details(
+        metric, date_from, date_to, region, eid, oid,
+    )
+    titles = {
+        "assigned": "Назначенные заявки",
+        "transferred_in": "Получено переводом",
+        "transferred_out": "Передано другому инженеру",
+        "closed": "Закрытые заявки",
+        "open_now": "Открытые сейчас",
+        "overdue_now": "Просроченные сейчас",
+    }
+    return templates.TemplateResponse("engineer_workload_details.html", {
+        "request": request, "rows": rows, "metric": metric,
+        "title": titles.get(metric, "Заявки"),
+        "current_user": request.state.current_user,
+    })
+
