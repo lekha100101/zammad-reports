@@ -67,17 +67,19 @@ def regional_summary(request: Request, date_from: str|None=Query(None), date_to:
 @login_required_page
 def transfers(
     request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None),
-    region: str|None=Query(None), engineer_id: int|None=Query(None),
-    organization_id: int|None=Query(None), ticket_number: str|None=Query(None),
+    region: str|None=Query(None), engineer_id: str|None=Query(None),
+    organization_id: str|None=Query(None), ticket_number: str|None=Query(None),
     sort_by: str=Query("transferred_at"), sort_order: str=Query("desc"),
     db: Session=Depends(get_db),
 ):
+    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
     service = ReportService(db)
-    rows = service.ticket_transfers(date_from,date_to,region,engineer_id,organization_id,ticket_number,sort_by,sort_order)
+    rows = service.ticket_transfers(date_from,date_to,region,engineer_id_value,organization_id_value,ticket_number,sort_by,sort_order)
     options = service.transfer_filter_options()
     return templates.TemplateResponse("transfers.html", {
         "request":request,"rows":rows,"options":options,"date_from":date_from,"date_to":date_to,
-        "region":region,"engineer_id":engineer_id,"organization_id":organization_id,
+        "region":region,"engineer_id":engineer_id_value,"organization_id":organization_id_value,
         "ticket_number":ticket_number,"sort_by":sort_by,"sort_order":sort_order,
         "current_user":request.state.current_user,
     })
