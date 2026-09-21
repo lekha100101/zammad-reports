@@ -1224,5 +1224,24 @@ class ReportService:
             {"id": g.id, "name": g.name}
             for g in self.db.query(Group).filter(Group.active.is_(True)).order_by(Group.name).all()
         ]
+
+        # Only users that actually appear as ticket owners/agents.
+        agent_ids = (
+            self.db.query(Ticket.owner_id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .distinct()
+            .subquery()
+        )
+        agents = (
+            self.db.query(User)
+            .filter(User.active.is_(True))
+            .filter(User.id.in_(self.db.query(agent_ids.c.owner_id)))
+            .order_by(User.firstname, User.lastname, User.login)
+            .all()
+        )
+        options["engineers"] = [
+            {"id": u.id, "name": self._user_name(u.firstname, u.lastname, u.login)}
+            for u in agents
+        ]
         return options
 
