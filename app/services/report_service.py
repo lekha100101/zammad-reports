@@ -954,3 +954,78 @@ class ReportService:
         rows.sort(key=lambda x: (-x["assigned"], -x["closed"], x["engineer"], x["region"]))
         return rows
 
+    def closure_time_report(
+        self, date_from=None, date_to=None, region=None,
+        engineer_id=None, organization_id=None,
+    ):
+        """Closure-time statistics by final engineer and region."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        closed_states = ["closed", "merged"]
+
+        query = (
+            self.db.query(
+                Ticket.owner_id.label("engineer_id"),
+                Ticket.group_id.label("group_id"),
+                func.count(Ticket.id).label("closed_count"),
+                func.avg(
+                    func.extract("epoch", Ticket.close_at) -
+                    func.extract("epoch", Ticket.created_at)
+                ).label("avg_seconds"),
+                func.percentile_cont(0.5).within_group(
+                    func.extract("epoch", Ticket.close_at) -
+                    func.extract("epoch", Ticket.created_at)
+                ).label("median_seconds"),
+                func.min(
+                    func.extract("epoch", Ticket.close_at) -
+                    func.extract("epoch", Ticket.created_at)
+                ).label("min_seconds"),
+                func.max(
+                    func.extract("epoch", Ticket.close_at) -
+                    func.extract("epoch", Ticket.created_at)
+                ).label("max_seconds"),
+            )
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.close_at.is_not(None))
+            .filter(Ticket.created_at.is_not(None))
+            .filter(Ticket.close_at >= Ticket.created_at)
+            .filter(func.lower(TicketState.name).in_(closed_states))
+            .filter(Ticket.owner_id.is_not(None))
+            .filter(Ticket.owner_id != 1)
+        )
+        if dt_from:
+            query = query.filter(Ticket.close_at >= dt_from)
+        if dt_to:
+            query = query.filter(Ticket.close_at < dt_to)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+
+        rows = query.group_by(Ticket.owner_id, Ticket.group_id).all()
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+
+        result = []
+        for row in rows:
+            display_region = regions.get(row.group_id) or groups.get(row.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            result.append({
+                "engineer_id": row.engineer_id,
+                "engineer": users.get(row.engineer_id, str(row.engineer_id)),
+                "region": display_region,
+                "closed_count": int(row.closed_count or 0),
+                "avg_time": self.format_duration(row.avg_seconds),
+                "median_time": self.format_duration(row.median_seconds),
+                "min_time": self.format_duration(row.min_seconds),
+                "max_time": self.format_duration(row.max_seconds),
+                "avg_seconds": float(row.avg_seconds or 0),
+            })
+        result.sort(key=lambda x: (-x["closed_count"], x["avg_seconds"], x["engineer"], x["region"]))
+        return result
+
