@@ -503,3 +503,27 @@ def engineer_workload(
         "current_user": request.state.current_user,
     })
 
+@router.get("/reports/closure-time", response_class=HTMLResponse)
+@login_required_page
+def closure_time(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
+    service = ReportService(db)
+    rows = service.closure_time_report(
+        date_from, date_to, region, engineer_id_value, organization_id_value,
+    )
+    return templates.TemplateResponse("closure_time.html", {
+        "request": request, "rows": rows, "options": service.transfer_filter_options(),
+        "date_from": date_from, "date_to": date_to, "region": region,
+        "engineer_id": engineer_id_value, "organization_id": organization_id_value,
+        "current_user": request.state.current_user,
+    })
+
