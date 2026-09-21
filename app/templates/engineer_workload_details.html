@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p><b>Заявок / событий:</b> {{ rows|length }} &nbsp; <a href="javascript:history.back()">← Вернуться к нагрузке инженеров</a></p>
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr>
+<th>№ заявки</th><th>Тема</th>
+{% if metric in ['assigned','transferred_in','transferred_out'] %}<th>Предыдущий инженер</th><th>Новый инженер</th><th>Дата события</th>{% else %}<th>Инженер</th>{% endif %}
+<th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th>
+{% if metric == 'closed' %}<th>Закрыта</th>{% endif %}
+</tr></thead><tbody>
+{% for row in rows %}<tr>
+<td>{{ row.ticket_number }}</td><td>{{ row.title }}</td>
+{% if metric in ['assigned','transferred_in','transferred_out'] %}
+<td>{{ row.from_engineer }}</td><td>{{ row.to_engineer }}</td><td>{{ row.event_at }}</td>
+{% else %}<td>{{ row.engineer }}</td>{% endif %}
+<td>{{ row.region }}</td><td>{{ row.group }}</td><td>{{ row.organization }}</td><td>{{ row.state }}</td><td>{{ row.created_at }}</td>
+{% if metric == 'closed' %}<td>{{ row.close_at }}</td>{% endif %}
+</tr>{% endfor %}
+{% if not rows %}<tr><td colspan="11" class="center empty-row">Нет данных</td></tr>{% endif %}
+</tbody></table></div>
+{% endblock %}
