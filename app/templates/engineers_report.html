@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Отчет по инженерам</h1>
+<p>Показатели SLA рассчитываются по метрикам, заданным в «Администрирование → Метрики отчетов».</p>
+<form method="get" class="filter-bar">
+<div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
+<div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
+<div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/engineers">Сбросить</a>
+</form>
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr>
+<th>ФИО</th><th>Регион</th><th>Группа поддержки</th><th>Назначенные</th><th>Закрытые</th><th>Открытые</th><th>Новые</th>
+<th>Среднее время первого ответа</th><th>First Response SLA, %</th><th>Среднее время решения</th><th>Resolution SLA, %</th>
+<th>Нарушения First Response SLA</th><th>Нарушения Resolution SLA</th><th>Просроченные</th>
+</tr></thead><tbody>
+{% for row in rows %}<tr>
+<td>{{ row.engineer }}</td><td>{{ row.region }}</td><td>{{ row.group }}</td>
+<td>{{ row.assigned }}</td><td>{{ row.closed }}</td><td>{{ row.open }}</td><td>{{ row.new }}</td>
+<td>{{ row.avg_first_response }}</td><td>{{ row.first_response_sla_pct if row.first_response_sla_pct is not none else '—' }}</td>
+<td>{{ row.avg_resolution }}</td><td>{{ row.resolution_sla_pct if row.resolution_sla_pct is not none else '—' }}</td>
+<td>{{ row.response_violations }}</td><td>{{ row.resolution_violations }}</td><td>{{ row.overdue }}</td>
+</tr>{% endfor %}
+{% if not rows %}<tr><td colspan="14" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
+</tbody></table></div>
+{% endblock %}
