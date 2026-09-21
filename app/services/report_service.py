@@ -640,3 +640,76 @@ class ReportService:
             key = sort_map.get(sort_by, sort_map["transferred_at"])
             result.sort(key=key, reverse=(sort_order or "").lower() == "desc")
             return result
+
+    def reopened_tickets(
+        self,
+        date_from=None,
+        date_to=None,
+        region=None,
+        engineer_id=None,
+        organization_id=None,
+        ticket_number=None,
+    ):
+        """Return transitions from a closed state back to open/new.
+
+        Zammad history stores state names in value_from/value_to, which lets us
+        reconstruct reopen events without relying on the ticket's current state.
+        """
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        closed_states = ["closed", "merged"]
+        open_states = ["open", "new"]
+
+        owner = aliased(User)
+        query = (
+            self.db.query(
+                Ticket.number.label("ticket_number"),
+                Ticket.title.label("title"),
+                func.coalesce(ReportRegion.name, Group.name).label("region"),
+                owner.firstname,
+                owner.lastname,
+                owner.login,
+                Organization.name.label("organization"),
+                TicketHistory.value_from.label("previous_state"),
+                TicketHistory.value_to.label("new_state"),
+                TicketHistory.created_at.label("reopened_at"),
+            )
+            .join(Ticket, Ticket.id == TicketHistory.ticket_id)
+            .outerjoin(Group, Group.id == Ticket.group_id)
+            .outerjoin(ReportRegion, ReportRegion.group_id == Ticket.group_id)
+            .outerjoin(Organization, Organization.id == Ticket.organization_id)
+            .outerjoin(owner, owner.id == Ticket.owner_id)
+            .filter(TicketHistory.object == "Ticket")
+            .filter(TicketHistory.attribute == "state")
+            .filter(func.lower(TicketHistory.value_from).in_(closed_states))
+            .filter(func.lower(TicketHistory.value_to).in_(open_states))
+        )
+
+        if dt_from:
+            query = query.filter(TicketHistory.created_at >= dt_from)
+        if dt_to:
+            query = query.filter(TicketHistory.created_at < dt_to)
+        if region:
+            query = query.filter(func.coalesce(ReportRegion.name, Group.name) == region)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+        if ticket_number:
+            query = query.filter(Ticket.number.ilike(f"%{ticket_number.strip()}%"))
+
+        rows = query.order_by(TicketHistory.created_at.desc()).all()
+        return [
+            {
+                "ticket_number": row.ticket_number,
+                "title": row.title or "",
+                "region": row.region or "Без группы",
+                "engineer": self._user_name(row.firstname, row.lastname, row.login),
+                "organization": row.organization or "",
+                "previous_state": row.previous_state or "",
+                "new_state": row.new_state or "",
+                "reopened_at": row.reopened_at,
+            }
+            for row in rows
+        ]
+
