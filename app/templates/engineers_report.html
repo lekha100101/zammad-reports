@@ -7,7 +7,7 @@
 <div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
 <div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
-<div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Инженер</label><select id="engineerSelect" name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
 <button type="submit">Применить</button><a role="button" class="secondary" href="/reports/engineers">Сбросить</a>
 </form>
@@ -26,4 +26,49 @@
 </tr>{% endfor %}
 {% if not rows %}<tr><td colspan="14" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const select = document.getElementById("engineerSelect");
+  if (select && window.jQuery && jQuery.fn.selectmenu) {
+    // jQuery UI selectmenu itself is not searchable, so use autocomplete
+    // over the real select while preserving engineer_id submission.
+    const wrapper = document.createElement("div");
+    wrapper.className = "engineer-search-wrap";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Начните вводить имя...";
+    input.autocomplete = "off";
+    const selected = select.options[select.selectedIndex];
+    input.value = selected && selected.value ? selected.text : "";
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(input);
+    wrapper.appendChild(select);
+    select.style.display = "none";
+
+    const items = Array.from(select.options)
+      .filter(o => o.value)
+      .map(o => ({ label: o.text, value: o.text, id: o.value }));
+
+    jQuery(input).autocomplete({
+      minLength: 0,
+      source: items,
+      select: function (_event, ui) {
+        select.value = ui.item.id;
+        input.value = ui.item.label;
+        return false;
+      },
+      change: function () {
+        const typed = input.value.trim().toLowerCase();
+        const match = items.find(x => x.label.toLowerCase() === typed);
+        if (match) {
+          select.value = match.id;
+        } else if (!typed) {
+          select.value = "";
+        }
+      }
+    });
+    input.addEventListener("focus", () => jQuery(input).autocomplete("search", input.value));
+  }
+});
+</script>
 {% endblock %}
