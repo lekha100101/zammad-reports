@@ -843,6 +843,7 @@ class ReportService:
             .filter(TicketHistory.attribute == "owner")
             .filter(TicketHistory.id_to.is_not(None))
             .filter(TicketHistory.id_to != 1)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if dt_from:
             aq = aq.filter(TicketHistory.created_at >= dt_from)
@@ -882,6 +883,7 @@ class ReportService:
             .filter(TicketHistory.id_from.is_not(None))
             .filter(TicketHistory.id_from != 1)
             .filter(TicketHistory.id_from != TicketHistory.id_to)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if dt_from:
             oq = oq.filter(TicketHistory.created_at >= dt_from)
@@ -912,7 +914,6 @@ class ReportService:
             .filter(Ticket.close_at.is_not(None))
             .filter(func.lower(TicketState.name).in_(closed_states))
             .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
-            .filter(~Ticket.state_id.in_(excluded_state_ids))
         )
         if dt_from:
             cq = cq.filter(Ticket.close_at >= dt_from)
@@ -943,6 +944,8 @@ class ReportService:
             self.db.query(Ticket)
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
             .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+            .filter(or_(TicketState.name.is_(None), func.lower(TicketState.name) != "suspended"))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if organization_id:
             openq = openq.filter(Ticket.organization_id == organization_id)
