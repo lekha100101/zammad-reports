@@ -205,3 +205,103 @@ def regional_summary(
 ):
     require_user(request, db)
     return ReportService(db).regional_period_report(date_from, date_to)
+
+def _optional_int(value):
+    if value is None:
+        return None
+    value = str(value).strip()
+    return int(value) if value.isdigit() else None
+
+
+@router.get("/transfers")
+def transfers(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    return ReportService(db).ticket_transfers(
+        date_from=date_from,
+        date_to=date_to,
+        region=region,
+        engineer_id=_optional_int(engineer_id),
+        organization_id=_optional_int(organization_id),
+        ticket_number=ticket_number,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+
+@router.get("/transfers/export.csv")
+def transfers_export_csv(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    rows = ReportService(db).ticket_transfers(
+        date_from, date_to, region, _optional_int(engineer_id),
+        _optional_int(organization_id), ticket_number, sort_by, sort_order
+    )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        df = pd.DataFrame([{"message": "no_data"}])
+    output = BytesIO()
+    output.write(df.to_csv(index=False).encode("utf-8-sig"))
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="transfers.csv"'},
+    )
+
+
+@router.get("/transfers/export.xlsx")
+def transfers_export_xlsx(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    rows = ReportService(db).ticket_transfers(
+        date_from, date_to, region, _optional_int(engineer_id),
+        _optional_int(organization_id), ticket_number, sort_by, sort_order
+    )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        df = pd.DataFrame([{"message": "no_data"}])
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Transfers")
+        ws = writer.sheets["Transfers"]
+        for column_cells in ws.columns:
+            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+            ws.column_dimensions[column_cells[0].column_letter].width = min(max_length + 2, 45)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="transfers.xlsx"'},
+    )
+
