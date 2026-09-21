@@ -804,3 +804,153 @@ class ReportService:
         result.sort(key=lambda row: row["returned_at"] or datetime.min, reverse=True)
         return result
 
+    def engineer_activity_report(
+        self, date_from=None, date_to=None, region=None,
+        engineer_id=None, organization_id=None,
+    ):
+        """Engineer workload for a period using owner history plus ticket outcomes."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        closed_states = ["closed", "merged"]
+
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).filter(User.active.is_(True)).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+
+        # Assignment events in the selected period. Initial assignment is included;
+        # system/unassigned owner id 1 is excluded.
+        aq = (
+            self.db.query(TicketHistory, Ticket)
+            .join(Ticket, Ticket.id == TicketHistory.ticket_id)
+            .filter(TicketHistory.object == "Ticket")
+            .filter(TicketHistory.attribute == "owner")
+            .filter(TicketHistory.id_to.is_not(None))
+            .filter(TicketHistory.id_to != 1)
+        )
+        if dt_from:
+            aq = aq.filter(TicketHistory.created_at >= dt_from)
+        if dt_to:
+            aq = aq.filter(TicketHistory.created_at < dt_to)
+        if organization_id:
+            aq = aq.filter(Ticket.organization_id == organization_id)
+
+        stats = {}
+        for h, ticket in aq.all():
+            if engineer_id and h.id_to != engineer_id:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (h.id_to, ticket.group_id)
+            item = stats.setdefault(key, {
+                "engineer_id": h.id_to,
+                "engineer": users.get(h.id_to, h.value_to or str(h.id_to)),
+                "region": display_region,
+                "assigned": 0,
+                "transferred_in": 0,
+                "transferred_out": 0,
+                "closed": 0,
+                "open_now": 0,
+            })
+            item["assigned"] += 1
+            if h.id_from not in (None, 1):
+                item["transferred_in"] += 1
+
+        # Transfers out during the period.
+        oq = (
+            self.db.query(TicketHistory, Ticket)
+            .join(Ticket, Ticket.id == TicketHistory.ticket_id)
+            .filter(TicketHistory.object == "Ticket")
+            .filter(TicketHistory.attribute == "owner")
+            .filter(TicketHistory.id_from.is_not(None))
+            .filter(TicketHistory.id_from != 1)
+            .filter(TicketHistory.id_from != TicketHistory.id_to)
+        )
+        if dt_from:
+            oq = oq.filter(TicketHistory.created_at >= dt_from)
+        if dt_to:
+            oq = oq.filter(TicketHistory.created_at < dt_to)
+        if organization_id:
+            oq = oq.filter(Ticket.organization_id == organization_id)
+        for h, ticket in oq.all():
+            if engineer_id and h.id_from != engineer_id:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (h.id_from, ticket.group_id)
+            item = stats.setdefault(key, {
+                "engineer_id": h.id_from,
+                "engineer": users.get(h.id_from, h.value_from or str(h.id_from)),
+                "region": display_region,
+                "assigned": 0, "transferred_in": 0, "transferred_out": 0,
+                "closed": 0, "open_now": 0,
+            })
+            item["transferred_out"] += 1
+
+        # Tickets closed in the period are attributed to their current/final owner.
+        cq = (
+            self.db.query(Ticket)
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.close_at.is_not(None))
+            .filter(func.lower(TicketState.name).in_(closed_states))
+        )
+        if dt_from:
+            cq = cq.filter(Ticket.close_at >= dt_from)
+        if dt_to:
+            cq = cq.filter(Ticket.close_at < dt_to)
+        if organization_id:
+            cq = cq.filter(Ticket.organization_id == organization_id)
+        for ticket in cq.all():
+            if not ticket.owner_id or ticket.owner_id == 1:
+                continue
+            if engineer_id and ticket.owner_id != engineer_id:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (ticket.owner_id, ticket.group_id)
+            item = stats.setdefault(key, {
+                "engineer_id": ticket.owner_id,
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region,
+                "assigned": 0, "transferred_in": 0, "transferred_out": 0,
+                "closed": 0, "open_now": 0,
+            })
+            item["closed"] += 1
+
+        # Current open backlog by engineer/region.
+        openq = (
+            self.db.query(Ticket)
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+        )
+        if organization_id:
+            openq = openq.filter(Ticket.organization_id == organization_id)
+        for ticket in openq.all():
+            if not ticket.owner_id or ticket.owner_id == 1:
+                continue
+            if engineer_id and ticket.owner_id != engineer_id:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (ticket.owner_id, ticket.group_id)
+            item = stats.setdefault(key, {
+                "engineer_id": ticket.owner_id,
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region,
+                "assigned": 0, "transferred_in": 0, "transferred_out": 0,
+                "closed": 0, "open_now": 0,
+            })
+            item["open_now"] += 1
+
+        rows = list(stats.values())
+        for row in rows:
+            row["net_flow"] = row["transferred_in"] - row["transferred_out"]
+        rows.sort(key=lambda x: (-x["assigned"], -x["closed"], x["engineer"], x["region"]))
+        return rows
+
