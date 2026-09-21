@@ -15,9 +15,14 @@
 <thead><tr><th>Инженер</th><th>Регион</th><th>Назначено</th><th>Переведено на инженера</th><th>Передано от инженера</th><th>Баланс переводов</th><th>Закрыто</th><th>Открыто сейчас</th><th>Просрочено сейчас</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
-<td>{{ row.engineer }}</td><td>{{ row.region }}</td><td>{{ row.assigned }}</td>
-<td>{{ row.transferred_in }}</td><td>{{ row.transferred_out }}</td><td>{{ row.net_flow }}</td>
-<td>{{ row.closed }}</td><td>{{ row.open_now }}</td><td>{{ row.overdue_now }}</td>
+<td>{{ row.engineer }}</td><td>{{ row.region }}</td>
+<td>{% if row.assigned %}<a href="/reports/engineer-workload/details?metric=assigned&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ row.assigned }}</a>{% else %}0{% endif %}</td>
+<td>{% if row.transferred_in %}<a href="/reports/engineer-workload/details?metric=transferred_in&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ row.transferred_in }}</a>{% else %}0{% endif %}</td>
+<td>{% if row.transferred_out %}<a href="/reports/engineer-workload/details?metric=transferred_out&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ row.transferred_out }}</a>{% else %}0{% endif %}</td>
+<td>{{ row.net_flow }}</td>
+<td>{% if row.closed %}<a href="/reports/engineer-workload/details?metric=closed&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ row.closed }}</a>{% else %}0{% endif %}</td>
+<td>{% if row.open_now %}<a href="/reports/engineer-workload/details?metric=open_now&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}">{{ row.open_now }}</a>{% else %}0{% endif %}</td>
+<td>{% if row.overdue_now %}<a href="/reports/engineer-workload/details?metric=overdue_now&engineer_id={{ row.engineer_id }}&region={{ row.region|urlencode }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}">{{ row.overdue_now }}</a>{% else %}0{% endif %}</td>
 </tr>{% endfor %}
 {% if not rows %}<tr><td colspan="9" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
