@@ -1026,6 +1026,49 @@ class ReportService:
                 "max_time": self.format_duration(row.max_seconds),
                 "avg_seconds": float(row.avg_seconds or 0),
             })
+        # Find the slowest closed ticket for every engineer/region row.
+        for item in result:
+            slowq = (
+                self.db.query(
+                    Ticket.number,
+                    (
+                        func.extract("epoch", Ticket.close_at) -
+                        func.extract("epoch", Ticket.created_at)
+                    ).label("duration_seconds"),
+                )
+                .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+                .filter(Ticket.owner_id == item["engineer_id"])
+                .filter(Ticket.close_at.is_not(None), Ticket.created_at.is_not(None))
+                .filter(Ticket.close_at >= Ticket.created_at)
+                .filter(func.lower(TicketState.name).in_(closed_states))
+            )
+            group_id = next(
+                (
+                    gid for gid, name in groups.items()
+                    if (regions.get(gid) or name or "Без группы") == item["region"]
+                ),
+                None,
+            )
+            if group_id is not None:
+                slowq = slowq.filter(Ticket.group_id == group_id)
+            if dt_from:
+                slowq = slowq.filter(Ticket.close_at >= dt_from)
+            if dt_to:
+                slowq = slowq.filter(Ticket.close_at < dt_to)
+            if organization_id:
+                slowq = slowq.filter(Ticket.organization_id == organization_id)
+
+            slowest = slowq.order_by(
+                (
+                    func.extract("epoch", Ticket.close_at) -
+                    func.extract("epoch", Ticket.created_at)
+                ).desc()
+            ).first()
+            item["max_ticket_number"] = slowest.number if slowest else ""
+            item["max_ticket_time"] = self.format_duration(
+                slowest.duration_seconds if slowest else None
+            )
+
         result.sort(key=lambda x: (-x["closed_count"], x["avg_seconds"], x["engineer"], x["region"]))
         return result
 
