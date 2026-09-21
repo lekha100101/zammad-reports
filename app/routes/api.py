@@ -16,8 +16,10 @@ def transfer_args(date_from,date_to,region,engineer_id,organization_id,ticket_nu
 
 
 @router.get("/transfers")
-def transfers(request: Request, date_from:str|None=Query(None), date_to:str|None=Query(None), region:str|None=Query(None), engineer_id:int|None=Query(None), organization_id:int|None=Query(None), ticket_number:str|None=Query(None), sort_by:str=Query("transferred_at"), sort_order:str=Query("desc"), db:Session=Depends(get_db)):
+def transfers(request: Request, date_from:str|None=Query(None), date_to:str|None=Query(None), region:str|None=Query(None), engineer_id:str|None=Query(None), organization_id:str|None=Query(None), ticket_number:str|None=Query(None), sort_by:str=Query("transferred_at"), sort_order:str=Query("desc"), db:Session=Depends(get_db)):
     require_user(request,db)
+    engineer_id = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    organization_id = int(organization_id) if organization_id and organization_id.isdigit() else None
     return ReportService(db).ticket_transfers(**transfer_args(date_from,date_to,region,engineer_id,organization_id,ticket_number,sort_by,sort_order))
 
 
@@ -53,6 +55,8 @@ def export_rows(report_name,data):
 @router.get("/{report_name}/export.csv")
 def export_csv(request:Request,report_name:str,date_from:str|None=Query(None),date_to:str|None=Query(None),region:str|None=Query(None),engineer_id:int|None=Query(None),organization_id:int|None=Query(None),ticket_number:str|None=Query(None),sort_by:str=Query("transferred_at"),sort_order:str=Query("desc"),db:Session=Depends(get_db)):
     require_user(request,db)
+    engineer_id = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    organization_id = int(organization_id) if organization_id and organization_id.isdigit() else None
     extra=transfer_args(None,None,region,engineer_id,organization_id,ticket_number,sort_by,sort_order)
     extra.pop("date_from"); extra.pop("date_to")
     data=get_report_data(report_name,db,date_from,date_to,**extra)
@@ -65,6 +69,8 @@ def export_csv(request:Request,report_name:str,date_from:str|None=Query(None),da
 @router.get("/{report_name}/export.xlsx")
 def export_xlsx(request:Request,report_name:str,date_from:str|None=Query(None),date_to:str|None=Query(None),region:str|None=Query(None),engineer_id:int|None=Query(None),organization_id:int|None=Query(None),ticket_number:str|None=Query(None),sort_by:str=Query("transferred_at"),sort_order:str=Query("desc"),db:Session=Depends(get_db)):
     require_user(request,db)
+    engineer_id = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    organization_id = int(organization_id) if organization_id and organization_id.isdigit() else None
     extra=transfer_args(None,None,region,engineer_id,organization_id,ticket_number,sort_by,sort_order); extra.pop("date_from"); extra.pop("date_to")
     data=get_report_data(report_name,db,date_from,date_to,**extra)
     df=pd.DataFrame(export_rows(report_name,data))
