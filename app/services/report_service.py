@@ -1199,6 +1199,45 @@ class ReportService:
             })
             row["closed"] += 1
 
+        # "Overdue" is a current backlog metric and does not depend on the
+        # selected report period. Count all currently non-closed tickets whose
+        # age has exceeded the configured Resolution SLA.
+        for row in stats.values():
+            row["overdue"] = 0
+
+        overdue_reference = datetime.utcnow()
+        overdueq = (
+            self.db.query(Ticket, TicketState.name.label("state_name"))
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .filter(Ticket.created_at.is_not(None))
+            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+        )
+        if group_id:
+            overdueq = overdueq.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            overdueq = overdueq.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            overdueq = overdueq.filter(Ticket.organization_id == organization_id)
+
+        for ticket, _state_name in overdueq.all():
+            if (overdue_reference - ticket.created_at).total_seconds() <= resolution_limit:
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (ticket.owner_id, ticket.group_id)
+            row = stats.setdefault(key, {
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region, "group": groups.get(ticket.group_id, "Без группы"),
+                "assigned": 0, "closed": 0, "open": 0, "new": 0,
+                "response_seconds": [], "resolution_seconds": [],
+                "response_sla_ok": 0, "response_sla_total": 0,
+                "resolution_sla_ok": 0, "resolution_sla_total": 0,
+                "response_violations": 0, "resolution_violations": 0, "overdue": 0,
+            })
+            row["overdue"] += 1
+
         result = []
         for row in stats.values():
             avg_response = sum(row["response_seconds"]) / len(row["response_seconds"]) if row["response_seconds"] else None
