@@ -12,12 +12,12 @@
 </form>
 <p><b>Строк:</b> {{ rows|length }}</p>
 <div class="table-wrapper"><table class="report-table compact-table">
-<thead><tr><th>Инженер</th><th>Регион</th><th>Закрыто</th><th>Среднее время</th><th>Медиана</th><th>Минимум</th><th>Максимум</th></tr></thead>
+<thead><tr><th>Инженер</th><th>Регион</th><th>Закрыто</th><th>Среднее время</th><th>Медиана</th><th>Минимум</th><th>Максимум</th><th>Заявка с максимальным временем</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
 <td>{{ row.engineer }}</td><td>{{ row.region }}</td><td>{{ row.closed_count }}</td>
-<td>{{ row.avg_time }}</td><td>{{ row.median_time }}</td><td>{{ row.min_time }}</td><td>{{ row.max_time }}</td>
+<td>{{ row.avg_time }}</td><td>{{ row.median_time }}</td><td>{{ row.min_time }}</td><td>{{ row.max_time }}</td><td>{{ row.max_ticket_number }}</td>
 </tr>{% endfor %}
-{% if not rows %}<tr><td colspan="7" class="center empty-row">Нет закрытых заявок по выбранным условиям</td></tr>{% endif %}
+{% if not rows %}<tr><td colspan="8" class="center empty-row">Нет закрытых заявок по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
 {% endblock %}
