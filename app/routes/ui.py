@@ -637,3 +637,23 @@ def sla_violations_report(
         "current_user": request.state.current_user,
     })
 
+@router.get("/reports/overdue", response_class=HTMLResponse)
+@login_required_page
+def overdue_report(
+    request: Request,
+    region: str | None = Query(None), group_id: str | None = Query(None),
+    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    gid = int(group_id) if group_id and group_id.isdigit() else None
+    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
+    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
+    service = ReportService(db)
+    rows = service.overdue_tickets(region, gid, eid, oid)
+    return templates.TemplateResponse("overdue_report.html", {
+        "request": request, "rows": rows,
+        "options": service.engineer_report_filter_options(),
+        "region": region, "group_id": gid, "engineer_id": eid,
+        "organization_id": oid, "current_user": request.state.current_user,
+    })
+
