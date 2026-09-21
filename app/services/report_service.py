@@ -1104,6 +1104,7 @@ class ReportService:
         response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
         resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
         closed_states = ["closed", "merged"]
+        excluded_backlog_states = ["suspended"]
         excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
         open_states = ["open"]
         new_states = ["new"]
@@ -1233,6 +1234,7 @@ class ReportService:
             .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
             .filter(Ticket.created_at.is_not(None))
             .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
+            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(excluded_backlog_states)))
             .filter(~Ticket.state_id.in_(excluded_state_ids))
         )
         if group_id:
