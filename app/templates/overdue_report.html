@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Просроченные заявки</h1>
+<p>Текущие незакрытые заявки, возраст которых превышает Resolution SLA из «Администрирование → Метрики отчетов». Период не применяется: отчет показывает актуальный backlog на текущий момент.</p>
+
+<form method="get" class="filter-bar">
+<div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/overdue">Сбросить</a>
+</form>
+
+<p><b>Просроченных заявок:</b> {{ rows|length }}</p>
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>Просрочка</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr>
+<td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.engineer }}</td>
+<td>{{ row.region }}</td><td>{{ row.group }}</td><td>{{ row.organization }}</td>
+<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.overdue }}</td>
+</tr>{% endfor %}
+{% if not rows %}<tr><td colspan="9" class="center empty-row">Просроченных заявок нет</td></tr>{% endif %}
+</tbody></table></div>
+{% endblock %}
