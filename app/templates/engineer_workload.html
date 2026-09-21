@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Нагрузка инженеров</h1>
-<p>Назначения и переводы считаются по истории владельцев за выбранный период. «Открыто сейчас» показывает текущий backlog.</p>
+<p>Назначения и переводы считаются по истории владельцев за выбранный период. «Открыто сейчас» показывает текущий активный backlog без Suspended. «Просрочено сейчас» — заявки, превысившие Resolution SLA.</p>
 <form method="get" class="filter-bar">
 <div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
 <div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
@@ -12,13 +12,13 @@
 </form>
 <p><b>Строк:</b> {{ rows|length }}</p>
 <div class="table-wrapper"><table class="report-table compact-table">
-<thead><tr><th>Инженер</th><th>Регион</th><th>Назначено</th><th>Переведено на инженера</th><th>Передано от инженера</th><th>Баланс переводов</th><th>Закрыто</th><th>Открыто сейчас</th></tr></thead>
+<thead><tr><th>Инженер</th><th>Регион</th><th>Назначено</th><th>Переведено на инженера</th><th>Передано от инженера</th><th>Баланс переводов</th><th>Закрыто</th><th>Открыто сейчас</th><th>Просрочено сейчас</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
 <td>{{ row.engineer }}</td><td>{{ row.region }}</td><td>{{ row.assigned }}</td>
 <td>{{ row.transferred_in }}</td><td>{{ row.transferred_out }}</td><td>{{ row.net_flow }}</td>
-<td>{{ row.closed }}</td><td>{{ row.open_now }}</td>
+<td>{{ row.closed }}</td><td>{{ row.open_now }}</td><td>{{ row.overdue_now }}</td>
 </tr>{% endfor %}
-{% if not rows %}<tr><td colspan="8" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
+{% if not rows %}<tr><td colspan="9" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
 {% endblock %}
