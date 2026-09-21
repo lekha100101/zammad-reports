@@ -1072,3 +1072,157 @@ class ReportService:
         result.sort(key=lambda x: (-x["closed_count"], x["avg_seconds"], x["engineer"], x["region"]))
         return result
 
+    def engineer_report(
+        self, date_from=None, date_to=None, region=None,
+        group_id=None, engineer_id=None, organization_id=None,
+    ):
+        """3.1 Engineer report.
+
+        Period is based on ticket creation for assigned/open/new and on close_at
+        for closed tickets. SLA thresholds use configured report metrics.
+        """
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
+        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
+        closed_states = ["closed", "merged"]
+        open_states = ["open"]
+        new_states = ["new"]
+
+        q = (
+            self.db.query(Ticket, TicketState.name.label("state_name"))
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+        )
+        if dt_from:
+            q = q.filter(Ticket.created_at >= dt_from)
+        if dt_to:
+            q = q.filter(Ticket.created_at < dt_to)
+        if group_id:
+            q = q.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            q = q.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            q = q.filter(Ticket.organization_id == organization_id)
+
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+
+        stats = {}
+        for ticket, state_name in q.all():
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (ticket.owner_id, ticket.group_id)
+            row = stats.setdefault(key, {
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region,
+                "group": groups.get(ticket.group_id, "Без группы"),
+                "assigned": 0, "closed": 0, "open": 0, "new": 0,
+                "response_seconds": [], "resolution_seconds": [],
+                "response_sla_ok": 0, "response_sla_total": 0,
+                "resolution_sla_ok": 0, "resolution_sla_total": 0,
+                "response_violations": 0, "resolution_violations": 0,
+                "overdue": 0,
+            })
+            row["assigned"] += 1
+            state = (state_name or "").lower()
+            if state in open_states:
+                row["open"] += 1
+            if state in new_states:
+                row["new"] += 1
+
+            if ticket.first_response_at and ticket.created_at:
+                seconds = (ticket.first_response_at - ticket.created_at).total_seconds()
+                if seconds >= 0:
+                    row["response_seconds"].append(seconds)
+                    row["response_sla_total"] += 1
+                    if seconds <= response_limit:
+                        row["response_sla_ok"] += 1
+                    else:
+                        row["response_violations"] += 1
+            elif state not in closed_states and ticket.created_at:
+                reference = dt_to or datetime.utcnow()
+                if (reference - ticket.created_at).total_seconds() > response_limit:
+                    row["response_violations"] += 1
+
+            if ticket.close_at and ticket.created_at:
+                seconds = (ticket.close_at - ticket.created_at).total_seconds()
+                if seconds >= 0:
+                    row["resolution_seconds"].append(seconds)
+                    row["resolution_sla_total"] += 1
+                    if seconds <= resolution_limit:
+                        row["resolution_sla_ok"] += 1
+                    else:
+                        row["resolution_violations"] += 1
+            elif state not in closed_states and ticket.created_at:
+                reference = dt_to or datetime.utcnow()
+                if (reference - ticket.created_at).total_seconds() > resolution_limit:
+                    row["resolution_violations"] += 1
+                    row["overdue"] += 1
+
+        # Closed count is based on close_at within the requested period.
+        cq = (
+            self.db.query(Ticket)
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .filter(Ticket.close_at.is_not(None))
+            .filter(func.lower(TicketState.name).in_(closed_states))
+        )
+        if dt_from:
+            cq = cq.filter(Ticket.close_at >= dt_from)
+        if dt_to:
+            cq = cq.filter(Ticket.close_at < dt_to)
+        if group_id:
+            cq = cq.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            cq = cq.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            cq = cq.filter(Ticket.organization_id == organization_id)
+        for ticket in cq.all():
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            key = (ticket.owner_id, ticket.group_id)
+            row = stats.setdefault(key, {
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region, "group": groups.get(ticket.group_id, "Без группы"),
+                "assigned": 0, "closed": 0, "open": 0, "new": 0,
+                "response_seconds": [], "resolution_seconds": [],
+                "response_sla_ok": 0, "response_sla_total": 0,
+                "resolution_sla_ok": 0, "resolution_sla_total": 0,
+                "response_violations": 0, "resolution_violations": 0, "overdue": 0,
+            })
+            row["closed"] += 1
+
+        result = []
+        for row in stats.values():
+            avg_response = sum(row["response_seconds"]) / len(row["response_seconds"]) if row["response_seconds"] else None
+            avg_resolution = sum(row["resolution_seconds"]) / len(row["resolution_seconds"]) if row["resolution_seconds"] else None
+            result.append({
+                "engineer": row["engineer"], "region": row["region"], "group": row["group"],
+                "assigned": row["assigned"], "closed": row["closed"],
+                "open": row["open"], "new": row["new"],
+                "avg_first_response": self.format_duration(avg_response),
+                "first_response_sla_pct": round(row["response_sla_ok"] * 100 / row["response_sla_total"], 1) if row["response_sla_total"] else None,
+                "avg_resolution": self.format_duration(avg_resolution),
+                "resolution_sla_pct": round(row["resolution_sla_ok"] * 100 / row["resolution_sla_total"], 1) if row["resolution_sla_total"] else None,
+                "response_violations": row["response_violations"],
+                "resolution_violations": row["resolution_violations"],
+                "overdue": row["overdue"],
+            })
+        result.sort(key=lambda x: (x["region"], x["group"], x["engineer"]))
+        return result
+
+    def engineer_report_filter_options(self):
+        options = self.transfer_filter_options()
+        options["groups"] = [
+            {"id": g.id, "name": g.name}
+            for g in self.db.query(Group).filter(Group.active.is_(True)).order_by(Group.name).all()
+        ]
+        return options
+
