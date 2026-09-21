@@ -1362,3 +1362,92 @@ class ReportService:
         result.sort(key=lambda x: x["overdue_seconds"], reverse=True)
         return result
 
+    def sla_violation_tickets(
+        self, violation_type, date_from=None, date_to=None, region=None,
+        group_id=None, engineer_id=None, organization_id=None,
+    ):
+        """Ticket drilldown for First Response or Resolution SLA violations."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
+        response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
+        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
+        closed_states = ["closed", "merged"]
+        now = datetime.utcnow()
+
+        query = (
+            self.db.query(Ticket, TicketState.name.label("state_name"))
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .filter(Ticket.created_at.is_not(None))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+        )
+        if dt_from:
+            query = query.filter(Ticket.created_at >= dt_from)
+        if dt_to:
+            query = query.filter(Ticket.created_at < dt_to)
+        if group_id:
+            query = query.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+
+        users = {
+            u.id: self._user_name(u.firstname, u.lastname, u.login)
+            for u in self.db.query(User).all()
+        }
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
+
+        result = []
+        for ticket, state_name in query.all():
+            state = (state_name or "").lower()
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+
+            if violation_type == "first_response":
+                if ticket.first_response_at:
+                    actual_seconds = (ticket.first_response_at - ticket.created_at).total_seconds()
+                elif state not in closed_states:
+                    actual_seconds = (now - ticket.created_at).total_seconds()
+                else:
+                    continue
+                limit_seconds = response_limit
+                actual_at = ticket.first_response_at
+            elif violation_type == "resolution":
+                if ticket.close_at:
+                    actual_seconds = (ticket.close_at - ticket.created_at).total_seconds()
+                    actual_at = ticket.close_at
+                elif state not in closed_states:
+                    actual_seconds = (now - ticket.created_at).total_seconds()
+                    actual_at = None
+                else:
+                    continue
+                limit_seconds = resolution_limit
+            else:
+                continue
+
+            if actual_seconds < 0 or actual_seconds <= limit_seconds:
+                continue
+
+            result.append({
+                "ticket_number": ticket.number or str(ticket.id),
+                "title": ticket.title or "",
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
+                "region": display_region,
+                "group": groups.get(ticket.group_id, "Без группы"),
+                "organization": organizations.get(ticket.organization_id, ""),
+                "state": state_name or "",
+                "created_at": ticket.created_at,
+                "actual_at": actual_at,
+                "actual_time": self.format_duration(actual_seconds),
+                "sla_time": self.format_duration(limit_seconds),
+                "violation": self.format_duration(actual_seconds - limit_seconds),
+                "violation_seconds": actual_seconds - limit_seconds,
+            })
+
+        result.sort(key=lambda x: x["violation_seconds"], reverse=True)
+        return result
+
