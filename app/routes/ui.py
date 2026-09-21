@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.auth import admin_required_page, login_required_page
 from app.deps import get_db
 from app.db import SessionLocal
-from app.models import SyncLog, Ticket, TicketState
+from app.models import SyncLog, Ticket, TicketState, TicketHistory
 from app.services.app_settings_service import get_app_settings, get_app_setting, update_app_settings
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
@@ -101,6 +101,20 @@ def index(request: Request, db: Session = Depends(get_db)):
         "trend_backlog": trend_backlog,
     }
     sync_status = request.query_params.get("sync_status")
+    history_log = (
+        db.query(SyncLog)
+        .filter(SyncLog.sync_type == "ticket_history")
+        .order_by(desc(SyncLog.started_at))
+        .first()
+    )
+    history_summary = {
+        "status": history_log.status if history_log else None,
+        "started_at": local_time(history_log.started_at, tz_name) if history_log else None,
+        "finished_at": local_time(history_log.finished_at, tz_name) if history_log and history_log.finished_at else None,
+        "events": history_log.items_count if history_log else 0,
+        "message": history_log.message if history_log else None,
+        "stored_events": db.query(func.count(TicketHistory.id)).scalar() or 0,
+    }
 
     return templates.TemplateResponse(
         "index.html",
@@ -109,6 +123,7 @@ def index(request: Request, db: Session = Depends(get_db)):
             "summary": summary,
             "chart_data_json": json.dumps(chart_data, ensure_ascii=False),
             "sync_status": sync_status,
+            "history_summary": history_summary,
             "current_user": request.state.current_user,
         },
     )
@@ -368,3 +383,29 @@ def transfers(
         "ticket_number":ticket_number,"sort_by":sort_by,"sort_order":sort_order,
         "current_user":request.state.current_user,
     })
+
+@router.post("/sync/history/run")
+@login_required_page
+def run_history_sync(request: Request, db: Session = Depends(get_db)):
+    if SYNC_LOCK.locked():
+        return RedirectResponse("/?sync_status=already_running", status_code=302)
+
+    def _history_job():
+        if not SYNC_LOCK.acquire(blocking=False):
+            return
+        bg_db = SessionLocal()
+        try:
+            zammad_url = get_app_setting(bg_db, "zammad_url")
+            zammad_token = get_app_setting(bg_db, "zammad_token")
+            if not zammad_url or not zammad_token:
+                return
+            SyncService(bg_db, zammad_url, zammad_token).sync_ticket_history()
+        except Exception as exc:
+            print(f"ticket_history background sync failed: {exc}")
+        finally:
+            bg_db.close()
+            SYNC_LOCK.release()
+
+    threading.Thread(target=_history_job, daemon=True).start()
+    return RedirectResponse("/?sync_status=history_started", status_code=302)
+
