@@ -1524,3 +1524,29 @@ class ReportService:
         )
         return result
 
+    def sla_violations_report(
+        self, date_from=None, date_to=None, region=None, group_id=None,
+        engineer_id=None, organization_id=None, violation_type=None,
+    ):
+        """Combined report 3.2 for First Response and Resolution SLA violations."""
+        kinds = []
+        if violation_type in (None, "", "all", "first_response"):
+            kinds.append(("first_response", "First Response SLA"))
+        if violation_type in (None, "", "all", "resolution"):
+            kinds.append(("resolution", "Resolution SLA"))
+
+        rows = []
+        for kind, label in kinds:
+            items = self.sla_violation_tickets(
+                kind, date_from, date_to, region,
+                group_id, engineer_id, organization_id,
+            )
+            for item in items:
+                row = dict(item)
+                row["violation_type"] = kind
+                row["violation_type_name"] = label
+                rows.append(row)
+
+        rows.sort(key=lambda x: x["violation_seconds"], reverse=True)
+        return rows
+
