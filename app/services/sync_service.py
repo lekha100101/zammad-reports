@@ -194,13 +194,32 @@ class SyncService:
 
             count = 0
             tickets_done = 0
+            skipped = 0
+            failed = 0
             for current_ticket_id in ticket_ids:
-                data = self._get_json(f"/api/v1/ticket_history/{current_ticket_id}")
+                try:
+                    data = self._get_json(f"/api/v1/ticket_history/{current_ticket_id}")
+                except RuntimeError as exc:
+                    # Local DB may contain tickets that were deleted from Zammad.
+                    # A missing remote ticket must not abort synchronization of all history.
+                    if " 404 " in str(exc):
+                        skipped += 1
+                        tickets_done += 1
+                        print(f"ticket_history skip missing ticket={current_ticket_id}")
+                        continue
+                    failed += 1
+                    tickets_done += 1
+                    print(f"ticket_history failed ticket={current_ticket_id}: {exc}")
+                    continue
+
                 history = data.get("history", []) if isinstance(data, dict) else data
                 if not isinstance(history, list):
-                    raise RuntimeError(
-                        f"Unexpected history response for ticket {current_ticket_id}: {data}"
+                    failed += 1
+                    tickets_done += 1
+                    print(
+                        f"ticket_history unexpected response ticket={current_ticket_id}: {data}"
                     )
+                    continue
 
                 for event in history:
                     # Only Ticket events belong to ticket_history. Ticket::Article and
@@ -243,9 +262,17 @@ class SyncService:
             self._log_finish(
                 log,
                 count,
-                message=f"tickets={tickets_done}, events={count}",
+                message=(
+                    f"tickets={tickets_done}, events={count}, "
+                    f"skipped={skipped}, failed={failed}"
+                ),
             )
-            return {"tickets": tickets_done, "events": count}
+            return {
+                "tickets": tickets_done,
+                "events": count,
+                "skipped": skipped,
+                "failed": failed,
+            }
         except Exception as exc:
             self._log_fail(log, exc)
             raise
