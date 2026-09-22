@@ -1502,18 +1502,11 @@ class ReportService:
                     event_at = ticket.first_response_at
                     sla_seconds = max(0, actual_seconds - violation_seconds)
                 else:
-                    # Still unanswered: use Zammad's own escalation deadline only.
-                    # Do not reconstruct business hours in Reports.
-                    if state in closed_states:
-                        continue
-                    deadline = ticket.first_response_escalation_at or ticket.escalation_at
-                    if deadline is None or deadline >= now:
-                        continue
-                    violation_seconds = (now - deadline).total_seconds()
-                    actual_seconds = None
-                    actual_at = None
-                    event_at = deadline
-                    sla_seconds = None
+                    # This is a historical report: unanswered tickets belong only
+                    # to the separate current SLA violations report. Once Zammad
+                    # records a late first response and a negative diff, the
+                    # ticket will appear here permanently.
+                    continue
 
             elif violation_type == "resolution":
                 # Keep Resolution history based on Zammad result/deadline fields.
