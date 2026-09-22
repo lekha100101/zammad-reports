@@ -28,22 +28,22 @@
             </button>
             <div class="side-nav-group" data-nav-group>
               <a href="/" class="menu-btn {% if request.url.path == '/' %}active{% endif %}">Главная</a>
-              <a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>
-              <a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>
-              <a href="/reports/engineers" class="menu-btn {% if request.url.path == '/reports/engineers' %}active{% endif %}">Отчет по инженерам</a>
-              <a href="/reports/sla-violations" class="menu-btn {% if request.url.path == '/reports/sla-violations' %}active{% endif %}">История SLA: первый ответ</a>
-              <a href="/reports/overdue" class="menu-btn {% if request.url.path == '/reports/overdue' %}active{% endif %}">История SLA: закрытие</a>
-              <a href="/reports/sla-current" class="menu-btn {% if request.url.path == '/reports/sla-current' %}active{% endif %}">Текущие нарушения SLA</a>
-              <a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>
-              <a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>
-              <a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>
-              <a href="/reports/transfers" class="menu-btn {% if request.url.path == '/reports/transfers' %}active{% endif %}">Переводы</a>
-              <a href="/reports/reopened" class="menu-btn {% if request.url.path == '/reports/reopened' %}active{% endif %}">Повторные открытия</a>
-              <a href="/reports/returns" class="menu-btn {% if request.url.path == '/reports/returns' %}active{% endif %}">Возвраты</a>
-              <a href="/reports/engineer-workload" class="menu-btn {% if request.url.path == '/reports/engineer-workload' %}active{% endif %}">Нагрузка инженеров</a>
-              <a href="/reports/closure-time" class="menu-btn {% if request.url.path == '/reports/closure-time' %}active{% endif %}">Время закрытия</a>
-              <a href="/reports/sla" class="menu-btn {% if request.url.path == '/reports/sla' %}active{% endif %}">SLA отчет</a>
-              <a href="/reports/workload" class="menu-btn {% if request.url.path == '/reports/workload' %}active{% endif %}">Workload</a>
+              {% if report_enabled(request, "statuses") %}<a href="/reports/statuses" class="menu-btn {% if request.url.path == '/reports/statuses' %}active{% endif %}">Статусы</a>{% endif %}
+              {% if report_enabled(request, "agents") %}<a href="/reports/agents" class="menu-btn {% if request.url.path == '/reports/agents' %}active{% endif %}">Исполнители</a>{% endif %}
+              {% if report_enabled(request, "engineers") %}<a href="/reports/engineers" class="menu-btn {% if request.url.path == '/reports/engineers' %}active{% endif %}">Отчет по инженерам</a>{% endif %}
+              {% if report_enabled(request, "sla_first_response") %}<a href="/reports/sla-violations" class="menu-btn {% if request.url.path == '/reports/sla-violations' %}active{% endif %}">История SLA: первый ответ</a>{% endif %}
+              {% if report_enabled(request, "sla_resolution") %}<a href="/reports/overdue" class="menu-btn {% if request.url.path == '/reports/overdue' %}active{% endif %}">История SLA: закрытие</a>{% endif %}
+              {% if report_enabled(request, "sla_current") %}<a href="/reports/sla-current" class="menu-btn {% if request.url.path == '/reports/sla-current' %}active{% endif %}">Текущие нарушения SLA</a>{% endif %}
+              {% if report_enabled(request, "groups") %}<a href="/reports/groups" class="menu-btn {% if request.url.path == '/reports/groups' %}active{% endif %}">Группы</a>{% endif %}
+              {% if report_enabled(request, "organizations") %}<a href="/reports/organizations" class="menu-btn {% if request.url.path == '/reports/organizations' %}active{% endif %}">Организации</a>{% endif %}
+              {% if report_enabled(request, "regional_summary") %}<a href="/reports/regional-summary" class="menu-btn {% if request.url.path == '/reports/regional-summary' %}active{% endif %}">Сводный отчет</a>{% endif %}
+              {% if report_enabled(request, "transfers") %}<a href="/reports/transfers" class="menu-btn {% if request.url.path == '/reports/transfers' %}active{% endif %}">Переводы</a>{% endif %}
+              {% if report_enabled(request, "reopened") %}<a href="/reports/reopened" class="menu-btn {% if request.url.path == '/reports/reopened' %}active{% endif %}">Повторные открытия</a>{% endif %}
+              {% if report_enabled(request, "returns") %}<a href="/reports/returns" class="menu-btn {% if request.url.path == '/reports/returns' %}active{% endif %}">Возвраты</a>{% endif %}
+              {% if report_enabled(request, "engineer_workload") %}<a href="/reports/engineer-workload" class="menu-btn {% if request.url.path == '/reports/engineer-workload' %}active{% endif %}">Нагрузка инженеров</a>{% endif %}
+              {% if report_enabled(request, "closure_time") %}<a href="/reports/closure-time" class="menu-btn {% if request.url.path == '/reports/closure-time' %}active{% endif %}">Время закрытия</a>{% endif %}
+              {% if report_enabled(request, "sla") %}<a href="/reports/sla" class="menu-btn {% if request.url.path == '/reports/sla' %}active{% endif %}">SLA отчет</a>{% endif %}
+              {% if report_enabled(request, "workload") %}<a href="/reports/workload" class="menu-btn {% if request.url.path == '/reports/workload' %}active{% endif %}">Workload</a>{% endif %}
             </div>
 
             <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle data-icon="fa-gears" aria-expanded="true">
@@ -56,6 +56,7 @@
               <a href="/admin/regions/" class="menu-btn {% if request.url.path.startswith('/admin/regions') %}active{% endif %}">Справочник регионов</a>
               <a href="/admin/users" class="menu-btn {% if request.url.path.startswith('/admin/users') %}active{% endif %}">Пользователи</a>
               <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
+              <a href="/admin/report-visibility" class="menu-btn {% if request.url.path.startswith('/admin/report-visibility') %}active{% endif %}">Отображение отчетов</a>
             </div>
           </nav>
         </div>
