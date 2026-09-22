@@ -942,7 +942,6 @@ class ReportService:
 
         # Current active backlog by engineer/region. Suspended tickets are not
         # treated as workload while they are paused.
-        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
         backlog_reference = datetime.utcnow()
         openq = (
             self.db.query(Ticket)
@@ -970,7 +969,7 @@ class ReportService:
                 "closed": 0, "open_now": 0, "overdue_now": 0,
             })
             item["open_now"] += 1
-            if ticket.created_at and (backlog_reference - ticket.created_at).total_seconds() > resolution_limit:
+            if ticket.close_escalation_at and ticket.close_escalation_at < backlog_reference:
                 item["overdue_now"] += 1
 
         rows = list(stats.values())
@@ -1321,8 +1320,7 @@ class ReportService:
     def overdue_tickets(
         self, region=None, group_id=None, engineer_id=None, organization_id=None,
     ):
-        """Current overdue backlog using configured Resolution SLA."""
-        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
+        """Current overdue backlog using Zammad's calendar-aware SLA deadline."""
         closed_states = ["closed", "merged"]
         excluded_backlog_states = ["suspended"]
         excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
@@ -1354,10 +1352,12 @@ class ReportService:
 
         result = []
         for ticket, state_name in query.all():
-            age_seconds = (now - ticket.created_at).total_seconds()
-            overdue_seconds = age_seconds - resolution_limit
-            if overdue_seconds <= 0:
+            # close_escalation_at is calculated by Zammad using the SLA calendar,
+            # including working hours, weekends and holidays. A NULL value means
+            # there is currently no Resolution SLA deadline for this ticket.
+            if not ticket.close_escalation_at or ticket.close_escalation_at >= now:
                 continue
+            overdue_seconds = (now - ticket.close_escalation_at).total_seconds()
             display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
             if region and display_region != region:
                 continue
@@ -1370,6 +1370,7 @@ class ReportService:
                 "organization": organizations.get(ticket.organization_id, ""),
                 "state": state_name or "",
                 "created_at": ticket.created_at,
+                "sla_deadline": ticket.close_escalation_at,
                 "overdue": self.format_duration(overdue_seconds),
                 "overdue_seconds": overdue_seconds,
             })
