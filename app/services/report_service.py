@@ -1458,13 +1458,11 @@ class ReportService:
         self, violation_type, date_from=None, date_to=None, region=None,
         group_id=None, engineer_id=None, organization_id=None,
     ):
-        """Ticket drilldown for First Response or Resolution SLA violations."""
+        """Historical SLA violations using Zammad calendar-aware SLA result fields."""
         dt_from = self._parse_date_start(date_from)
         dt_to = self._parse_date_end(date_to)
-        response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
-        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
-        closed_states = ["closed", "merged"]
         now = datetime.utcnow()
+        closed_states = {"closed", "merged"}
 
         query = (
             self.db.query(Ticket, TicketState.name.label("state_name"))
@@ -1473,10 +1471,6 @@ class ReportService:
             .filter(Ticket.created_at.is_not(None))
             .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
-        if dt_from:
-            query = query.filter(Ticket.created_at >= dt_from)
-        if dt_to:
-            query = query.filter(Ticket.created_at < dt_to)
         if group_id:
             query = query.filter(Ticket.group_id == group_id)
         if engineer_id:
@@ -1484,10 +1478,7 @@ class ReportService:
         if organization_id:
             query = query.filter(Ticket.organization_id == organization_id)
 
-        users = {
-            u.id: self._user_name(u.firstname, u.lastname, u.login)
-            for u in self.db.query(User).all()
-        }
+        users = {u.id: self._user_name(u.firstname, u.lastname, u.login) for u in self.db.query(User).all()}
         groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
         regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
         organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
@@ -1500,44 +1491,66 @@ class ReportService:
                 continue
 
             if violation_type == "first_response":
-                if ticket.first_response_at:
-                    actual_seconds = (ticket.first_response_at - ticket.created_at).total_seconds()
-                elif state not in closed_states:
-                    actual_seconds = (now - ticket.created_at).total_seconds()
+                # Completed First Response: Zammad stores remaining SLA minutes.
+                # Negative diff means the response exceeded the calendar-aware SLA.
+                if ticket.first_response_at is not None:
+                    if ticket.first_response_diff_in_min is None or ticket.first_response_diff_in_min >= 0:
+                        continue
+                    violation_seconds = abs(ticket.first_response_diff_in_min) * 60
+                    actual_seconds = (ticket.first_response_in_min or 0) * 60
+                    actual_at = ticket.first_response_at
+                    event_at = ticket.first_response_at
+                    sla_seconds = max(0, actual_seconds - violation_seconds)
                 else:
-                    continue
-                limit_seconds = response_limit
-                actual_at = ticket.first_response_at
-            elif violation_type == "resolution":
-                if ticket.close_at:
-                    actual_seconds = (ticket.close_at - ticket.created_at).total_seconds()
-                    actual_at = ticket.close_at
-                elif state not in closed_states:
-                    actual_seconds = (now - ticket.created_at).total_seconds()
+                    # Still unanswered: use Zammad's own escalation deadline only.
+                    # Do not reconstruct business hours in Reports.
+                    if state in closed_states:
+                        continue
+                    deadline = ticket.first_response_escalation_at or ticket.escalation_at
+                    if deadline is None or deadline >= now:
+                        continue
+                    violation_seconds = (now - deadline).total_seconds()
+                    actual_seconds = None
                     actual_at = None
+                    event_at = deadline
+                    sla_seconds = None
+
+            elif violation_type == "resolution":
+                # Keep Resolution history based on Zammad result/deadline fields.
+                if ticket.close_at is not None:
+                    if ticket.close_diff_in_min is None or ticket.close_diff_in_min >= 0:
+                        continue
+                    violation_seconds = abs(ticket.close_diff_in_min) * 60
+                    actual_seconds = (ticket.close_in_min or 0) * 60
+                    actual_at = ticket.close_at
+                    event_at = ticket.close_at
+                    sla_seconds = max(0, actual_seconds - violation_seconds)
                 else:
-                    continue
-                limit_seconds = resolution_limit
+                    if ticket.close_escalation_at is None or ticket.close_escalation_at >= now:
+                        continue
+                    violation_seconds = (now - ticket.close_escalation_at).total_seconds()
+                    actual_seconds = None
+                    actual_at = None
+                    event_at = ticket.close_escalation_at
+                    sla_seconds = None
             else:
                 continue
 
-            if actual_seconds < 0 or actual_seconds <= limit_seconds:
+            if dt_from and event_at < dt_from:
+                continue
+            if dt_to and event_at >= dt_to:
                 continue
 
             result.append({
-                "ticket_number": ticket.number or str(ticket.id),
-                "title": ticket.title or "",
-                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)),
-                "region": display_region,
+                "ticket_number": ticket.number or str(ticket.id), "title": ticket.title or "",
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)), "region": display_region,
                 "group": groups.get(ticket.group_id, "Без группы"),
-                "organization": organizations.get(ticket.organization_id, ""),
-                "state": state_name or "",
-                "created_at": ticket.created_at,
-                "actual_at": actual_at,
-                "actual_time": self.format_duration(actual_seconds),
-                "sla_time": self.format_duration(limit_seconds),
-                "violation": self.format_duration(actual_seconds - limit_seconds),
-                "violation_seconds": actual_seconds - limit_seconds,
+                "organization": organizations.get(ticket.organization_id, ""), "state": state_name or "",
+                "created_at": ticket.created_at, "actual_at": actual_at,
+                "actual_time": self.format_duration(actual_seconds) if actual_seconds is not None else "Не выполнено",
+                "sla_time": self.format_duration(sla_seconds) if sla_seconds is not None else "По Zammad",
+                "violation": self.format_duration(violation_seconds),
+                "violation_seconds": violation_seconds,
             })
 
         result.sort(key=lambda x: x["violation_seconds"], reverse=True)
