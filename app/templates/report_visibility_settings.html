@@ -4,7 +4,7 @@
 <form method="post" action="/admin/report-visibility">
 <div class="table-wrapper"><table class="report-table compact-table">
 <thead><tr><th>Отчет</th><th class="center">Показывать</th></tr></thead><tbody>
-{% for key, name in reports %}<tr><td>{{ name }}</td><td class="center"><input type="checkbox" name="{{ key }}" value="1" {% if key in enabled %}checked{% endif %}></td></tr>{% endfor %}
+{% for key, name in reports %}<tr><td>{{ name }}</td><td class="center"><input type="checkbox" name="enabled_reports" value="{{ key }}" {% if key in enabled %}checked{% endif %}></td></tr>{% endfor %}
 </tbody></table></div>
 <div style="margin-top:12px"><button type="submit">Сохранить</button></div>
 </form>{% endblock %}
