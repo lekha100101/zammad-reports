@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Просроченные заявки</h1>
-<p>История нарушений Resolution SLA по данным Zammad. Закрытые заявки сохраняются в отчете, если были закрыты с нарушением SLA; незакрытые попадают после наступления SLA deadline.</p>
+<h1>История SLA: закрытие</h1>
+<p>Исторический отчет по нарушениям Resolution SLA. Здесь отображаются только уже закрытые заявки, которые Zammad зафиксировал как закрытые с нарушением SLA. Текущие незакрытые нарушения находятся в отчете «Текущие нарушения SLA».</p>
 
 <form method="get" class="filter-bar">
 <div class="filter-item"><label>Период с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
@@ -13,14 +13,14 @@
 <button type="submit">Применить</button><a role="button" class="secondary" href="/reports/overdue">Сбросить</a>
 </form>
 
-<p><b>Нарушений Resolution SLA:</b> {{ rows|length }}</p>
+<p><b>Закрыто с нарушением Resolution SLA:</b> {{ rows|length }}</p>
 <div class="table-wrapper"><table class="report-table compact-table">
 <thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>SLA deadline</th><th>Закрыта</th><th>Нарушение</th><th>Просрочка</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
 <td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.engineer }}</td>
 <td>{{ row.region }}</td><td>{{ row.group }}</td><td>{{ row.organization }}</td>
-<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.sla_deadline or "" }}</td><td>{{ row.close_at or "" }}</td><td>{{ row.violation_status }}</td><td>{{ row.overdue }}</td>
+<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.sla_deadline or "—" }}</td><td>{{ row.close_at or "—" }}</td><td>{{ row.violation_status }}</td><td>{{ row.overdue }}</td>
 </tr>{% endfor %}
 {% if not rows %}<tr class="empty-row"><td class="center">Просроченных заявок нет</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endif %}
 </tbody></table></div>
