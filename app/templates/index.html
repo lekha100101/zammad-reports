@@ -4,8 +4,6 @@
 
 {% if sync_status == "started" %}
   <article class="notice-success">Синхронизация запущена в фоне. Обновите страницу через некоторое время.</article>
-{% elif sync_status == "history_started" %}
-  <article class="notice-success">Синхронизация истории тикетов запущена в фоне.</article>
 {% elif sync_status == "already_running" %}
   <article class="notice-warning">Синхронизация уже выполняется. Дождитесь завершения текущего запуска.</article>
 {% endif %}
@@ -58,21 +56,8 @@
     <button type="submit" class="btn-inline">Синхронизировать</button>
   </form>
 
-  <hr>
 
-  <h4>История тикетов</h4>
-  {% if history_summary.status %}
-    <p><b>Статус:</b> {{ history_summary.status }}</p>
-    <p><b>Запущено:</b> {{ history_summary.started_at or "—" }}</p>
-    {% if history_summary.finished_at %}<p><b>Завершено:</b> {{ history_summary.finished_at }}</p>{% endif %}
-    <p><b>Событий в БД:</b> {{ history_summary.stored_events }}</p>
-    {% if history_summary.message %}<p><b>Результат:</b> {{ history_summary.message }}</p>{% endif %}
-  {% else %}
-    <p>История тикетов еще не синхронизировалась.</p>
-  {% endif %}
-  <form method="post" action="/sync/history/run" onsubmit="return confirm('Запустить синхронизацию истории всех тикетов? Процесс может занять продолжительное время.');" class="inline-form">
-    <button type="submit" class="btn-inline">Синхронизировать историю</button>
-  </form>
+  <p>История измененных заявок синхронизируется автоматически вместе с основной синхронизацией.</p>
 
 </article>
 
