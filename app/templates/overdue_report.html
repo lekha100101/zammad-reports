@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Просроченные заявки</h1>
-<p>Текущие незакрытые заявки, возраст которых превышает Resolution SLA из «Администрирование → Метрики отчетов». Период не применяется: отчет показывает актуальный backlog на текущий момент.</p>
+<p>Текущие заявки new/open, у которых рассчитанный Zammad срок Resolution SLA уже наступил. Срок учитывает рабочий календарь Zammad. Период не применяется: отчет показывает актуальный backlog на текущий момент.</p>
 
 <form method="get" class="filter-bar">
 <div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
@@ -11,15 +11,20 @@
 <button type="submit">Применить</button><a role="button" class="secondary" href="/reports/overdue">Сбросить</a>
 </form>
 
-<p><b>Просроченных заявок:</b> {{ rows|length }}</p>
+<p>
+<b>Активных заявок:</b> {{ summary.active }} &nbsp;|&nbsp;
+<b>С Resolution SLA:</b> {{ summary.with_sla }} &nbsp;|&nbsp;
+<b>Просрочено по SLA:</b> {{ summary.overdue }} &nbsp;|&nbsp;
+<b>Без Resolution SLA:</b> {{ summary.without_sla }}
+</p>
 <div class="table-wrapper"><table class="report-table compact-table">
-<thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>Просрочка</th></tr></thead>
+<thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>SLA deadline</th><th>Просрочка</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
 <td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.engineer }}</td>
 <td>{{ row.region }}</td><td>{{ row.group }}</td><td>{{ row.organization }}</td>
-<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.overdue }}</td>
+<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.sla_deadline }}</td><td>{{ row.overdue }}</td>
 </tr>{% endfor %}
-{% if not rows %}<tr><td colspan="9" class="center empty-row">Просроченных заявок нет</td></tr>{% endif %}
+{% if not rows %}<tr><td colspan="10" class="center empty-row">Просроченных заявок нет</td></tr>{% endif %}
 </tbody></table></div>
 {% endblock %}
