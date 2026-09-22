@@ -21,6 +21,18 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
 SYNC_LOCK = threading.Lock()
 
+def report_enabled(request: Request, key: str) -> bool:
+    db = SessionLocal()
+    try:
+        raw = get_app_setting(db, "report_visibility")
+        if not raw:
+            return True
+        return key in {item for item in raw.split(",") if item}
+    finally:
+        db.close()
+
+templates.env.globals["report_enabled"] = report_enabled
+
 def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
