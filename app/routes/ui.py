@@ -33,6 +33,18 @@ def report_enabled(request: Request, key: str) -> bool:
 
 templates.env.globals["report_enabled"] = report_enabled
 
+def report_order() -> list[str]:
+    db = SessionLocal()
+    try:
+        raw = get_app_setting(db, "report_order")
+        saved = [item for item in raw.split(",") if item] if raw else []
+        defaults = [key for key, _ in REPORT_VISIBILITY_OPTIONS]
+        return saved + [key for key in defaults if key not in saved]
+    finally:
+        db.close()
+
+templates.env.globals["report_order"] = report_order
+
 def local_time(dt, tz_name: str = "UTC"):
     if not dt:
         return None
