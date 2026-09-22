@@ -16,6 +16,7 @@ APP_SETTING_DEFAULTS = {
     "zammad_per_page": str(settings.zammad_per_page),
     "tz": settings.tz,
     "sync_token": "",
+    "report_visibility": "",
 }
 
 
