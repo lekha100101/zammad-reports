@@ -17,6 +17,7 @@ APP_SETTING_DEFAULTS = {
     "tz": settings.tz,
     "sync_token": "",
     "report_visibility": "",
+    "report_order": "",
 }
 
 
