@@ -355,5 +355,6 @@
   initJqueryButtons();
   initCreateUserDialog();
   initProgressTables();
+  initEngineerSearches();
   initDataTables();
 })();
