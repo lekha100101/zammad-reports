@@ -650,8 +650,9 @@ def overdue_report(
     oid = int(organization_id) if organization_id and organization_id.isdigit() else None
     service = ReportService(db)
     rows = service.overdue_tickets(region, gid, eid, oid)
+    summary = service.overdue_summary(region, gid, eid, oid)
     return templates.TemplateResponse("overdue_report.html", {
-        "request": request, "rows": rows,
+        "request": request, "rows": rows, "summary": summary,
         "options": service.engineer_report_filter_options(),
         "region": region, "group_id": gid, "engineer_id": eid,
         "organization_id": oid, "current_user": request.state.current_user,
