@@ -1318,12 +1318,12 @@ class ReportService:
         return options
 
     def overdue_tickets(
-        self, region=None, group_id=None, engineer_id=None, organization_id=None,
+        self, date_from=None, date_to=None, region=None, group_id=None,
+        engineer_id=None, organization_id=None,
     ):
-        """Current overdue backlog using Zammad's calendar-aware SLA deadline."""
-        closed_states = ["closed", "merged"]
-        excluded_backlog_states = ["suspended"]
-        excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
+        """Historical Resolution SLA violations using Zammad's calendar-aware SLA data."""
+        dt_from = self._parse_date_start(date_from)
+        dt_to = self._parse_date_end(date_to)
         now = datetime.utcnow()
 
         query = (
@@ -1331,8 +1331,6 @@ class ReportService:
             .outerjoin(TicketState, Ticket.state_id == TicketState.id)
             .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
             .filter(Ticket.created_at.is_not(None))
-            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(closed_states)))
-            .filter(or_(TicketState.name.is_(None), ~func.lower(TicketState.name).in_(excluded_backlog_states)))
             .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
         )
         if group_id:
@@ -1342,25 +1340,42 @@ class ReportService:
         if organization_id:
             query = query.filter(Ticket.organization_id == organization_id)
 
-        users = {
-            u.id: self._user_name(u.firstname, u.lastname, u.login)
-            for u in self.db.query(User).all()
-        }
+        users = {u.id: self._user_name(u.firstname, u.lastname, u.login) for u in self.db.query(User).all()}
         groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
         regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
         organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
 
         result = []
         for ticket, state_name in query.all():
-            # close_escalation_at is calculated by Zammad using the SLA calendar,
-            # including working hours, weekends and holidays. A NULL value means
-            # there is currently no Resolution SLA deadline for this ticket.
-            if not ticket.close_escalation_at or ticket.close_escalation_at >= now:
-                continue
-            overdue_seconds = (now - ticket.close_escalation_at).total_seconds()
             display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
             if region and display_region != region:
                 continue
+
+            # Closed tickets: Zammad keeps the business-time Resolution SLA result.
+            # A negative close_diff_in_min means the ticket exceeded the SLA.
+            if ticket.close_at is not None:
+                if ticket.close_diff_in_min is None or ticket.close_diff_in_min >= 0:
+                    continue
+                event_at = ticket.close_at
+                overdue_seconds = abs(ticket.close_diff_in_min) * 60
+                violation_status = "Закрыта с нарушением"
+            else:
+                # Still-open tickets are historical violations once their Zammad
+                # Resolution SLA deadline has passed. They remain in the report
+                # after closure via close_diff_in_min above.
+                if not ticket.close_escalation_at or ticket.close_escalation_at >= now:
+                    continue
+                event_at = ticket.close_escalation_at
+                overdue_seconds = (now - ticket.close_escalation_at).total_seconds()
+                violation_status = "Просрочена сейчас"
+
+            # The report period is the date when the violation is established:
+            # deadline for an open ticket, close time for a closed ticket.
+            if dt_from and event_at < dt_from:
+                continue
+            if dt_to and event_at >= dt_to:
+                continue
+
             result.append({
                 "ticket_number": ticket.number or str(ticket.id),
                 "title": ticket.title or "",
@@ -1371,49 +1386,14 @@ class ReportService:
                 "state": state_name or "",
                 "created_at": ticket.created_at,
                 "sla_deadline": ticket.close_escalation_at,
+                "close_at": ticket.close_at,
+                "violation_status": violation_status,
                 "overdue": self.format_duration(overdue_seconds),
                 "overdue_seconds": overdue_seconds,
+                "event_at": event_at,
             })
-        result.sort(key=lambda x: x["overdue_seconds"], reverse=True)
+        result.sort(key=lambda x: x["event_at"], reverse=True)
         return result
-
-    def overdue_summary(
-        self, region=None, group_id=None, engineer_id=None, organization_id=None,
-    ):
-        """Summary of current new/open tickets and Zammad Resolution SLA coverage."""
-        query = (
-            self.db.query(Ticket)
-            .filter(Ticket.state_id.in_((1, 2)))
-            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
-        )
-        if group_id:
-            query = query.filter(Ticket.group_id == group_id)
-        if engineer_id:
-            query = query.filter(Ticket.owner_id == engineer_id)
-        if organization_id:
-            query = query.filter(Ticket.organization_id == organization_id)
-
-        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
-        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
-        now = datetime.utcnow()
-        active = with_sla = overdue = without_sla = 0
-        for ticket in query.all():
-            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
-            if region and display_region != region:
-                continue
-            active += 1
-            if ticket.close_escalation_at is None:
-                without_sla += 1
-            else:
-                with_sla += 1
-                if ticket.close_escalation_at < now:
-                    overdue += 1
-        return {
-            "active": active,
-            "with_sla": with_sla,
-            "overdue": overdue,
-            "without_sla": without_sla,
-        }
 
     def sla_violation_tickets(
         self, violation_type, date_from=None, date_to=None, region=None,
