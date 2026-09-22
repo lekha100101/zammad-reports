@@ -294,9 +294,13 @@ def report_visibility_settings(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/admin/report-visibility")
 @admin_required_page
-async def report_visibility_settings_save(request: Request, db: Session = Depends(get_db)):
-    form = await request.form()
-    enabled = [key for key, _ in REPORT_VISIBILITY_OPTIONS if form.get(key) == "1"]
+def report_visibility_settings_save(
+    request: Request,
+    enabled_reports: list[str] = Form(default=[]),
+    db: Session = Depends(get_db),
+):
+    allowed = {key for key, _ in REPORT_VISIBILITY_OPTIONS}
+    enabled = [key for key in enabled_reports if key in allowed]
     update_app_settings(db, {"report_visibility": ",".join(enabled)})
     return RedirectResponse("/admin/report-visibility", status_code=302)
 
