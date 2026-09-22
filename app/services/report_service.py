@@ -1395,6 +1395,65 @@ class ReportService:
         result.sort(key=lambda x: x["event_at"], reverse=True)
         return result
 
+    def current_sla_violations(
+        self, region=None, group_id=None, engineer_id=None, organization_id=None,
+    ):
+        """Current non-closed tickets with overdue First Response and/or Resolution SLA."""
+        now = datetime.utcnow()
+        closed_states = {"closed", "merged"}
+        query = (
+            self.db.query(Ticket, TicketState.name.label("state_name"))
+            .outerjoin(TicketState, Ticket.state_id == TicketState.id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+        )
+        if group_id:
+            query = query.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+
+        users = {u.id: self._user_name(u.firstname, u.lastname, u.login) for u in self.db.query(User).all()}
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        organizations = {o.id: o.name for o in self.db.query(Organization.id, Organization.name).all()}
+        rows = []
+
+        for ticket, state_name in query.all():
+            state = (state_name or "").lower()
+            if ticket.close_at is not None or state in closed_states or state == "suspended":
+                continue
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+
+            violations = []
+            first_deadline = None
+            if ticket.first_response_at is None:
+                first_deadline = ticket.first_response_escalation_at or ticket.escalation_at
+                if first_deadline is not None and first_deadline < now:
+                    violations.append(("Первый ответ", now - first_deadline))
+
+            if ticket.close_escalation_at is not None and ticket.close_escalation_at < now:
+                violations.append(("Закрытие заявки", now - ticket.close_escalation_at))
+
+            if not violations:
+                continue
+            rows.append({
+                "ticket_number": ticket.number or str(ticket.id), "title": ticket.title or "",
+                "engineer": users.get(ticket.owner_id, str(ticket.owner_id)), "region": display_region,
+                "group": groups.get(ticket.group_id, "Без группы"),
+                "organization": organizations.get(ticket.organization_id, ""), "state": state_name or "",
+                "created_at": ticket.created_at, "first_response_deadline": first_deadline,
+                "resolution_deadline": ticket.close_escalation_at,
+                "violation_type": " + ".join(v[0] for v in violations),
+                "violation": "; ".join(f"{v[0]}: {self.format_duration(v[1].total_seconds())}" for v in violations),
+                "max_overdue_seconds": max(v[1].total_seconds() for v in violations),
+            })
+        rows.sort(key=lambda x: x["max_overdue_seconds"], reverse=True)
+        return rows
+
     def sla_violation_tickets(
         self, violation_type, date_from=None, date_to=None, region=None,
         group_id=None, engineer_id=None, organization_id=None,
