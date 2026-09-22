@@ -1102,15 +1102,13 @@ class ReportService:
         self, date_from=None, date_to=None, region=None,
         group_id=None, engineer_id=None, organization_id=None,
     ):
-        """3.1 Engineer report.
+        """3.1 Engineer report using Zammad's calendar-aware SLA result fields.
 
         Period is based on ticket creation for assigned/open/new and on close_at
-        for closed tickets. SLA thresholds use configured report metrics.
+        for closed tickets. Current overdue is independent of the selected period.
         """
         dt_from = self._parse_date_start(date_from)
         dt_to = self._parse_date_end(date_to)
-        response_limit = get_metric_int(self.db, "sla_response_minutes") * 60
-        resolution_limit = get_metric_int(self.db, "sla_resolution_hours") * 3600
         closed_states = ["closed", "merged"]
         excluded_backlog_states = ["suspended"]
         excluded_state_ids = EXCLUDED_REPORT_STATE_IDS
@@ -1165,34 +1163,26 @@ class ReportService:
             if state in new_states:
                 row["new"] += 1
 
-            if ticket.first_response_at and ticket.created_at:
-                seconds = (ticket.first_response_at - ticket.created_at).total_seconds()
-                if seconds >= 0:
-                    row["response_seconds"].append(seconds)
-                    row["response_sla_total"] += 1
-                    if seconds <= response_limit:
-                        row["response_sla_ok"] += 1
-                    else:
-                        row["response_violations"] += 1
-            elif state not in closed_states and ticket.created_at:
-                reference = dt_to or datetime.utcnow()
-                if (reference - ticket.created_at).total_seconds() > response_limit:
+            # First Response SLA: use Zammad business-calendar minutes/diff.
+            # Only completed first responses participate in historical SLA %.
+            if ticket.first_response_at is not None and ticket.first_response_diff_in_min is not None:
+                if ticket.first_response_in_min is not None:
+                    row["response_seconds"].append(max(0, ticket.first_response_in_min) * 60)
+                row["response_sla_total"] += 1
+                if ticket.first_response_diff_in_min >= 0:
+                    row["response_sla_ok"] += 1
+                else:
                     row["response_violations"] += 1
 
-            if ticket.close_at and ticket.created_at:
-                seconds = (ticket.close_at - ticket.created_at).total_seconds()
-                if seconds >= 0:
-                    row["resolution_seconds"].append(seconds)
-                    row["resolution_sla_total"] += 1
-                    if seconds <= resolution_limit:
-                        row["resolution_sla_ok"] += 1
-                    else:
-                        row["resolution_violations"] += 1
-            elif state not in closed_states and ticket.created_at:
-                reference = dt_to or datetime.utcnow()
-                if (reference - ticket.created_at).total_seconds() > resolution_limit:
+            # Resolution SLA: only completed closures with a Zammad SLA result.
+            if ticket.close_at is not None and ticket.close_diff_in_min is not None:
+                if ticket.close_in_min is not None:
+                    row["resolution_seconds"].append(max(0, ticket.close_in_min) * 60)
+                row["resolution_sla_total"] += 1
+                if ticket.close_diff_in_min >= 0:
+                    row["resolution_sla_ok"] += 1
+                else:
                     row["resolution_violations"] += 1
-                    row["overdue"] += 1
 
         # Closed count is based on close_at within the requested period.
         cq = (
@@ -1230,8 +1220,8 @@ class ReportService:
             row["closed"] += 1
 
         # "Overdue" is a current backlog metric and does not depend on the
-        # selected report period. Count all currently non-closed tickets whose
-        # age has exceeded the configured Resolution SLA.
+        # selected report period. Zammad's close_escalation_at is the source
+        # of truth, so business hours/calendar are not reconstructed here.
         for row in stats.values():
             row["overdue"] = 0
 
@@ -1253,7 +1243,7 @@ class ReportService:
             overdueq = overdueq.filter(Ticket.organization_id == organization_id)
 
         for ticket, _state_name in overdueq.all():
-            if (overdue_reference - ticket.created_at).total_seconds() <= resolution_limit:
+            if ticket.close_escalation_at is None or ticket.close_escalation_at >= overdue_reference:
                 continue
             display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
             if region and display_region != region:
