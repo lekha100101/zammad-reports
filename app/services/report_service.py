@@ -1360,14 +1360,10 @@ class ReportService:
                 overdue_seconds = abs(ticket.close_diff_in_min) * 60
                 violation_status = "Закрыта с нарушением"
             else:
-                # Still-open tickets are historical violations once their Zammad
-                # Resolution SLA deadline has passed. They remain in the report
-                # after closure via close_diff_in_min above.
-                if not ticket.close_escalation_at or ticket.close_escalation_at >= now:
-                    continue
-                event_at = ticket.close_escalation_at
-                overdue_seconds = (now - ticket.close_escalation_at).total_seconds()
-                violation_status = "Просрочена сейчас"
+                # Historical Resolution SLA contains only completed violations.
+                # Open tickets whose Resolution deadline has passed belong to
+                # the separate current SLA violations report.
+                continue
 
             # The report period is the date when the violation is established:
             # deadline for an open ticket, close time for a closed ticket.
