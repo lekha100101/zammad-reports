@@ -1377,6 +1377,44 @@ class ReportService:
         result.sort(key=lambda x: x["overdue_seconds"], reverse=True)
         return result
 
+    def overdue_summary(
+        self, region=None, group_id=None, engineer_id=None, organization_id=None,
+    ):
+        """Summary of current new/open tickets and Zammad Resolution SLA coverage."""
+        query = (
+            self.db.query(Ticket)
+            .filter(Ticket.state_id.in_((1, 2)))
+            .filter(~Ticket.state_id.in_(EXCLUDED_REPORT_STATE_IDS))
+        )
+        if group_id:
+            query = query.filter(Ticket.group_id == group_id)
+        if engineer_id:
+            query = query.filter(Ticket.owner_id == engineer_id)
+        if organization_id:
+            query = query.filter(Ticket.organization_id == organization_id)
+
+        groups = {g.id: g.name for g in self.db.query(Group.id, Group.name).all()}
+        regions = {r.group_id: r.name for r in self.db.query(ReportRegion.group_id, ReportRegion.name).all()}
+        now = datetime.utcnow()
+        active = with_sla = overdue = without_sla = 0
+        for ticket in query.all():
+            display_region = regions.get(ticket.group_id) or groups.get(ticket.group_id) or "Без группы"
+            if region and display_region != region:
+                continue
+            active += 1
+            if ticket.close_escalation_at is None:
+                without_sla += 1
+            else:
+                with_sla += 1
+                if ticket.close_escalation_at < now:
+                    overdue += 1
+        return {
+            "active": active,
+            "with_sla": with_sla,
+            "overdue": overdue,
+            "without_sla": without_sla,
+        }
+
     def sla_violation_tickets(
         self, violation_type, date_from=None, date_to=None, region=None,
         group_id=None, engineer_id=None, organization_id=None,
