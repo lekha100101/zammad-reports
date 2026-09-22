@@ -642,6 +642,7 @@ def sla_violations_report(
 @login_required_page
 def overdue_report(
     request: Request,
+    date_from: str | None = Query(None), date_to: str | None = Query(None),
     region: str | None = Query(None), group_id: str | None = Query(None),
     engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
     db: Session = Depends(get_db),
