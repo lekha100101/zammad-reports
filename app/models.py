@@ -68,6 +68,15 @@ class Ticket(Base):
     close_at = Column(DateTime, nullable=True)
     escalation_at = Column(DateTime, nullable=True)
     first_response_at = Column(DateTime, nullable=True)
+    first_response_escalation_at = Column(DateTime, nullable=True)
+    first_response_in_min = Column(Integer, nullable=True)
+    first_response_diff_in_min = Column(Integer, nullable=True)
+    close_escalation_at = Column(DateTime, nullable=True)
+    close_in_min = Column(Integer, nullable=True)
+    close_diff_in_min = Column(Integer, nullable=True)
+    update_escalation_at = Column(DateTime, nullable=True)
+    update_in_min = Column(Integer, nullable=True)
+    update_diff_in_min = Column(Integer, nullable=True)
     pending_time = Column(DateTime, nullable=True)
 
 
