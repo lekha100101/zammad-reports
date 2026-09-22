@@ -133,6 +133,7 @@ class SyncService:
 
     def sync_tickets(self):
         log = self._log_start("tickets")
+        changed_ticket_ids = []
         try:
             page, per_page, count = 1, 100, 0
             while True:
@@ -174,6 +175,11 @@ class SyncService:
                             ticket_data = t
 
                     obj = self.db.get(Ticket, ticket_data["id"]) or Ticket(id=ticket_data["id"])
+                    remote_updated_at = parse_dt(ticket_data.get("updated_at"))
+                    # History is immutable. Refresh it only for tickets that are
+                    # new locally or whose Zammad updated_at changed.
+                    if obj.id is None or obj.updated_at != remote_updated_at:
+                        changed_ticket_ids.append(ticket_data["id"])
                     self.db.add(obj)
                     t = ticket_data
                     obj.number = t.get("number")
@@ -205,8 +211,8 @@ class SyncService:
                     break
                 page += 1
 
-            self._log_finish(log, count)
-            return count
+            self._log_finish(log, count, message=f"changed_tickets={len(set(changed_ticket_ids))}")
+            return {"count": count, "changed_ticket_ids": list(dict.fromkeys(changed_ticket_ids))}
         except Exception as exc:
             self._log_fail(log, exc)
             raise
@@ -334,10 +340,25 @@ class SyncService:
             raise
 
     def sync_all(self):
+        users = self.sync_users()
+        groups = self.sync_groups()
+        organizations = self.sync_organizations()
+        states = self.sync_ticket_states()
+        tickets_result = self.sync_tickets()
+        changed_ticket_ids = tickets_result["changed_ticket_ids"]
+
+        history = {"tickets": 0, "events": 0, "skipped": 0, "failed": 0}
+        for ticket_id in changed_ticket_ids:
+            result = self.sync_ticket_history(ticket_id=ticket_id)
+            for key in history:
+                history[key] += result.get(key, 0)
+
         return {
-            "users": self.sync_users(),
-            "groups": self.sync_groups(),
-            "organizations": self.sync_organizations(),
-            "states": self.sync_ticket_states(),
-            "tickets": self.sync_tickets(),
+            "users": users,
+            "groups": groups,
+            "organizations": organizations,
+            "states": states,
+            "tickets": tickets_result["count"],
+            "history": history,
+            "history_changed_tickets": len(changed_ticket_ids),
         }
