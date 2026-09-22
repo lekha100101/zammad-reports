@@ -93,6 +93,52 @@
     });
   };
 
+  const initEngineerSearches = () => {
+    $("select[name='engineer_id']").each((_, selectEl) => {
+      const select = selectEl;
+      if (select.dataset.searchableReady === "1") return;
+      select.dataset.searchableReady = "1";
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "engineer-search-wrap";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Начните вводить имя...";
+      input.autocomplete = "off";
+
+      const selected = select.options[select.selectedIndex];
+      input.value = selected && selected.value ? selected.text : "";
+
+      select.parentNode.insertBefore(wrapper, select);
+      wrapper.appendChild(input);
+      wrapper.appendChild(select);
+      select.style.display = "none";
+
+      const items = Array.from(select.options)
+        .filter(option => option.value)
+        .map(option => ({ label: option.text, value: option.text, id: option.value }));
+
+      if ($.fn.autocomplete) {
+        $(input).autocomplete({
+          minLength: 0,
+          source: items,
+          select: function (_event, ui) {
+            select.value = ui.item.id;
+            input.value = ui.item.label;
+            return false;
+          },
+          change: function () {
+            const typed = input.value.trim().toLowerCase();
+            const match = items.find(item => item.label.toLowerCase() === typed);
+            if (match) select.value = match.id;
+            else if (!typed) select.value = "";
+          },
+        });
+        input.addEventListener("focus", () => $(input).autocomplete("search", input.value));
+      }
+    });
+  };
+
   const initDataTables = () => {
     if (!$.fn.DataTable) return;
 
