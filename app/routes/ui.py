@@ -552,6 +552,7 @@ def engineers_report(
 @login_required_page
 def engineer_overdue_tickets(
     request: Request,
+    date_from: str | None = Query(None), date_to: str | None = Query(None),
     region: str | None = Query(None), group_id: str | None = Query(None),
     engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
     db: Session = Depends(get_db),
@@ -649,10 +650,10 @@ def overdue_report(
     eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
     oid = int(organization_id) if organization_id and organization_id.isdigit() else None
     service = ReportService(db)
-    rows = service.overdue_tickets(region, gid, eid, oid)
-    summary = service.overdue_summary(region, gid, eid, oid)
+    rows = service.overdue_tickets(date_from, date_to, region, gid, eid, oid)
     return templates.TemplateResponse("overdue_report.html", {
-        "request": request, "rows": rows, "summary": summary,
+        "request": request, "rows": rows,
+        "date_from": date_from, "date_to": date_to,
         "options": service.engineer_report_filter_options(),
         "region": region, "group_id": gid, "engineer_id": eid,
         "organization_id": oid, "current_user": request.state.current_user,
