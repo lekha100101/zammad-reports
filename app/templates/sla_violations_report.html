@@ -6,16 +6,12 @@
 <form method="get" class="filter-bar">
 <div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
 <div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
-<div class="filter-item"><label>Тип нарушения</label><select name="violation_type">
-<option value="all" {% if violation_type == 'all' %}selected{% endif %}>Все типы</option>
-<option value="first_response" {% if violation_type == 'first_response' %}selected{% endif %}>First Response SLA</option>
-<option value="resolution" {% if violation_type == 'resolution' %}selected{% endif %}>Resolution SLA</option>
-</select></div>
+
 <div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
-<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/sla-violations">Сбросить</a>
+<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/sla-violations?violation_type=first_response">Сбросить</a>
 </form>
 
 <p><b>Нарушений:</b> {{ rows|length }}</p>
