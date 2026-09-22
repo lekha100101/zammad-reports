@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block content %}
+<h1>Отображение отчетов</h1>
+<p>Отключенные отчеты скрываются из меню для пользователей. Данные отчетов при этом не удаляются.</p>
+<form method="post" action="/admin/report-visibility">
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr><th>Отчет</th><th class="center">Показывать</th></tr></thead><tbody>
+{% for key, name in reports %}<tr><td>{{ name }}</td><td class="center"><input type="checkbox" name="{{ key }}" value="1" {% if key in enabled %}checked{% endif %}></td></tr>{% endfor %}
+</tbody></table></div>
+<div style="margin-top:12px"><button type="submit">Сохранить</button></div>
+</form>{% endblock %}
