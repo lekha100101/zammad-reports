@@ -1,4 +1,3 @@
-import threading
 import json
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -15,11 +14,11 @@ from app.services.app_settings_service import get_app_settings, get_app_setting,
 from app.services.metric_settings_service import get_metric_int, get_metric_settings, update_metric_settings
 from app.services.report_service import ReportService
 from app.services.sync_service import SyncService
+from app.services.sync_lock import SYNC_LOCK
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="app/templates")
-SYNC_LOCK = threading.Lock()
 
 def report_enabled(request: Request, key: str) -> bool:
     db = SessionLocal()
