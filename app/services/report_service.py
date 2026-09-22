@@ -550,9 +550,19 @@ class ReportService:
             .order_by(ReportRegion.name)
             .all()
         )
+        # Engineer selectors across reports must behave like
+        # engineer-workload: show only active users who actually appear as
+        # ticket owners, instead of every active Zammad user/customer.
+        owner_ids = (
+            self.db.query(Ticket.owner_id)
+            .filter(Ticket.owner_id.is_not(None), Ticket.owner_id != 1)
+            .distinct()
+            .subquery()
+        )
         users = (
             self.db.query(User.id, User.firstname, User.lastname, User.login)
             .filter(User.active.is_(True))
+            .filter(User.id.in_(self.db.query(owner_ids.c.owner_id)))
             .order_by(User.firstname, User.lastname, User.login)
             .all()
         )
