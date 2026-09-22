@@ -147,8 +147,35 @@ class SyncService:
                     break
 
                 for t in data:
-                    obj = self.db.get(Ticket, t["id"]) or Ticket(id=t["id"])
+                    # The paginated /api/v1/tickets response is a compact ticket
+                    # representation and may omit SLA calculation fields such as
+                    # close_escalation_at and *_in_min/*_diff_in_min. Fetch the
+                    # full ticket only when those fields are absent so Zammad's
+                    # calendar-aware SLA calculation is persisted locally.
+                    sla_fields = (
+                        "first_response_escalation_at",
+                        "first_response_in_min",
+                        "first_response_diff_in_min",
+                        "close_escalation_at",
+                        "close_in_min",
+                        "close_diff_in_min",
+                        "update_escalation_at",
+                        "update_in_min",
+                        "update_diff_in_min",
+                    )
+                    ticket_data = t
+                    if not any(field in t for field in sla_fields):
+                        try:
+                            ticket_data = self._get_json(f"/api/v1/tickets/{t['id']}")
+                        except RuntimeError as exc:
+                            # Keep the normal ticket sync useful even if one
+                            # detail request fails; compact fields are still saved.
+                            print(f"ticket SLA detail fetch failed id={t['id']}: {exc}")
+                            ticket_data = t
+
+                    obj = self.db.get(Ticket, ticket_data["id"]) or Ticket(id=ticket_data["id"])
                     self.db.add(obj)
+                    t = ticket_data
                     obj.number = t.get("number")
                     obj.title = t.get("title")
                     obj.group_id = t.get("group_id")
