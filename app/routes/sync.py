@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_user
 from app.deps import get_db
 from app.services.sync_service import SyncService
+from app.services.sync_lock import SYNC_LOCK
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -28,7 +29,12 @@ def ensure_sync_access(request: Request, db: Session, x_sync_token: str | None =
 @router.post("/all")
 def sync_all(request: Request, db: Session = Depends(get_db), x_sync_token: str | None = Header(default=None)):
     ensure_sync_access(request, db, x_sync_token)
-    return get_sync(db).sync_all()
+    if not SYNC_LOCK.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Synchronization already running")
+    try:
+        return get_sync(db).sync_all()
+    finally:
+        SYNC_LOCK.release()
 
 
 @router.post("/users")
