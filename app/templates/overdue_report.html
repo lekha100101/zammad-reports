@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Просроченные заявки</h1>
-<p>Текущие заявки new/open, у которых рассчитанный Zammad срок Resolution SLA уже наступил. Срок учитывает рабочий календарь Zammad. Период не применяется: отчет показывает актуальный backlog на текущий момент.</p>
+<p>История нарушений Resolution SLA по данным Zammad. Закрытые заявки сохраняются в отчете, если были закрыты с нарушением SLA; незакрытые попадают после наступления SLA deadline.</p>
 
 <form method="get" class="filter-bar">
+<div class="filter-item"><label>Период с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
+<div class="filter-item"><label>по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
 <div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
 <div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
@@ -11,20 +13,15 @@
 <button type="submit">Применить</button><a role="button" class="secondary" href="/reports/overdue">Сбросить</a>
 </form>
 
-<p>
-<b>Активных заявок:</b> {{ summary.active }} &nbsp;|&nbsp;
-<b>С Resolution SLA:</b> {{ summary.with_sla }} &nbsp;|&nbsp;
-<b>Просрочено по SLA:</b> {{ summary.overdue }} &nbsp;|&nbsp;
-<b>Без Resolution SLA:</b> {{ summary.without_sla }}
-</p>
+<p><b>Нарушений Resolution SLA:</b> {{ rows|length }}</p>
 <div class="table-wrapper"><table class="report-table compact-table">
-<thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>SLA deadline</th><th>Просрочка</th></tr></thead>
+<thead><tr><th>№ заявки</th><th>Тема</th><th>Инженер</th><th>Регион</th><th>Группа</th><th>Мед. организация</th><th>Статус</th><th>Создана</th><th>SLA deadline</th><th>Закрыта</th><th>Нарушение</th><th>Просрочка</th></tr></thead>
 <tbody>
 {% for row in rows %}<tr>
 <td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.engineer }}</td>
 <td>{{ row.region }}</td><td>{{ row.group }}</td><td>{{ row.organization }}</td>
-<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.sla_deadline }}</td><td>{{ row.overdue }}</td>
+<td>{{ row.state }}</td><td>{{ row.created_at }}</td><td>{{ row.sla_deadline or "" }}</td><td>{{ row.close_at or "" }}</td><td>{{ row.violation_status }}</td><td>{{ row.overdue }}</td>
 </tr>{% endfor %}
-{% if not rows %}<tr><td colspan="10" class="center empty-row">Просроченных заявок нет</td></tr>{% endif %}
+{% if not rows %}<tr><td colspan="12" class="center empty-row">Просроченных заявок нет</td></tr>{% endif %}
 </tbody></table></div>
 {% endblock %}
