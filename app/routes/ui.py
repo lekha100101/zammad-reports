@@ -261,6 +261,34 @@ def workload_report(
     )
 
 
+REPORT_VISIBILITY_OPTIONS = [
+    ("statuses", "Статусы"), ("agents", "Исполнители"), ("engineers", "Отчет по инженерам"),
+    ("sla_first_response", "История SLA: первый ответ"), ("sla_resolution", "История SLA: закрытие"),
+    ("sla_current", "Текущие нарушения SLA"), ("groups", "Группы"), ("organizations", "Организации"),
+    ("regional_summary", "Сводный отчет"), ("transfers", "Переводы"), ("reopened", "Повторные открытия"),
+    ("returns", "Возвраты"), ("engineer_workload", "Нагрузка инженеров"), ("closure_time", "Время закрытия"),
+    ("sla", "SLA отчет"), ("workload", "Workload"),
+]
+
+@router.get("/admin/report-visibility", response_class=HTMLResponse)
+@admin_required_page
+def report_visibility_settings(request: Request, db: Session = Depends(get_db)):
+    raw = get_app_setting(db, "report_visibility")
+    enabled = set(raw.split(",")) if raw else {key for key, _ in REPORT_VISIBILITY_OPTIONS}
+    return templates.TemplateResponse("report_visibility_settings.html", {
+        "request": request, "reports": REPORT_VISIBILITY_OPTIONS, "enabled": enabled,
+        "current_user": request.state.current_user,
+    })
+
+@router.post("/admin/report-visibility")
+@admin_required_page
+async def report_visibility_settings_save(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    enabled = [key for key, _ in REPORT_VISIBILITY_OPTIONS if form.get(key) == "1"]
+    update_app_settings(db, {"report_visibility": ",".join(enabled)})
+    return RedirectResponse("/admin/report-visibility", status_code=302)
+
+
 @router.get("/admin/report-metrics", response_class=HTMLResponse)
 @admin_required_page
 def report_metrics_settings(request: Request, db: Session = Depends(get_db)):
