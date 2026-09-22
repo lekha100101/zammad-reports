@@ -287,8 +287,13 @@ REPORT_VISIBILITY_OPTIONS = [
 def report_visibility_settings(request: Request, db: Session = Depends(get_db)):
     raw = get_app_setting(db, "report_visibility")
     enabled = set(raw.split(",")) if raw else {key for key, _ in REPORT_VISIBILITY_OPTIONS}
+    raw_order = get_app_setting(db, "report_order")
+    order = [key for key in raw_order.split(",") if key] if raw_order else []
+    by_key = dict(REPORT_VISIBILITY_OPTIONS)
+    ordered_keys = order + [key for key, _ in REPORT_VISIBILITY_OPTIONS if key not in order]
+    reports = [(key, by_key[key]) for key in ordered_keys if key in by_key]
     return templates.TemplateResponse("report_visibility_settings.html", {
-        "request": request, "reports": REPORT_VISIBILITY_OPTIONS, "enabled": enabled,
+        "request": request, "reports": reports, "enabled": enabled,
         "current_user": request.state.current_user,
     })
 
@@ -297,11 +302,17 @@ def report_visibility_settings(request: Request, db: Session = Depends(get_db)):
 def report_visibility_settings_save(
     request: Request,
     enabled_reports: list[str] = Form(default=[]),
+    report_order: str = Form(""),
     db: Session = Depends(get_db),
 ):
     allowed = {key for key, _ in REPORT_VISIBILITY_OPTIONS}
     enabled = [key for key in enabled_reports if key in allowed]
-    update_app_settings(db, {"report_visibility": ",".join(enabled)})
+    requested_order = [key for key in report_order.split(",") if key in allowed]
+    order = requested_order + [key for key, _ in REPORT_VISIBILITY_OPTIONS if key not in requested_order]
+    update_app_settings(db, {
+        "report_visibility": ",".join(enabled),
+        "report_order": ",".join(order),
+    })
     return RedirectResponse("/admin/report-visibility", status_code=302)
 
 
