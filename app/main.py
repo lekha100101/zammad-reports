@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth import bootstrap_admin
@@ -17,6 +18,16 @@ from app.services.report_group_exclusions import (
 )
 
 Base.metadata.create_all(bind=engine)
+# create_all() does not add columns to an existing table. Keep this small,
+# idempotent migration here until the project gets a dedicated migration tool.
+with engine.begin() as conn:
+    conn.execute(text(
+        "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS "
+        "is_deleted BOOLEAN NOT NULL DEFAULT FALSE"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_tickets_is_deleted ON tickets (is_deleted)"
+    ))
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
