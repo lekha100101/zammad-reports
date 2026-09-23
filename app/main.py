@@ -8,7 +8,7 @@ from app.auth import bootstrap_admin
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.routes import api, auth_routes, sync, ui, users_admin
-from app.routes import admin_regions
+from app.routes import admin_regions, excluded_groups
 
 Base.metadata.create_all(bind=engine)
 
@@ -29,6 +29,7 @@ app.include_router(sync.router)
 app.include_router(api.router)
 app.include_router(users_admin.router)
 app.include_router(admin_regions.router)
+app.include_router(excluded_groups.router)
 
 
 @app.on_event("startup")
