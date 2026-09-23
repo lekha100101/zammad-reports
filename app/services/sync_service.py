@@ -20,8 +20,6 @@ def parse_dt(value):
         return None
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        # PostgreSQL columns in this project are TIMESTAMP WITHOUT TIME ZONE.
-        # Zammad timestamps are UTC, so store them as naive UTC consistently.
         return dt.replace(tzinfo=None) if dt.tzinfo else dt
     except (TypeError, ValueError):
         return None
@@ -134,6 +132,7 @@ class SyncService:
     def sync_tickets(self):
         log = self._log_start("tickets")
         changed_ticket_ids = []
+        seen_ticket_ids = set()
         try:
             page, per_page, count = 1, 100, 0
             while True:
@@ -148,11 +147,7 @@ class SyncService:
                     break
 
                 for t in data:
-                    # The paginated /api/v1/tickets response is a compact ticket
-                    # representation and may omit SLA calculation fields such as
-                    # close_escalation_at and *_in_min/*_diff_in_min. Fetch the
-                    # full ticket only when those fields are absent so Zammad's
-                    # calendar-aware SLA calculation is persisted locally.
+                    seen_ticket_ids.add(int(t["id"]))
                     sla_fields = (
                         "first_response_escalation_at",
                         "first_response_in_min",
@@ -169,16 +164,12 @@ class SyncService:
                         try:
                             ticket_data = self._get_json(f"/api/v1/tickets/{t['id']}")
                         except RuntimeError as exc:
-                            # Keep the normal ticket sync useful even if one
-                            # detail request fails; compact fields are still saved.
                             print(f"ticket SLA detail fetch failed id={t['id']}: {exc}")
                             ticket_data = t
 
                     obj = self.db.get(Ticket, ticket_data["id"]) or Ticket(id=ticket_data["id"])
                     remote_updated_at = parse_dt(ticket_data.get("updated_at"))
-                    # History is immutable. Refresh it only for tickets that are
-                    # new locally or whose Zammad updated_at changed.
-                    if obj.id is None or obj.updated_at != remote_updated_at:
+                    if obj.updated_at != remote_updated_at:
                         changed_ticket_ids.append(ticket_data["id"])
                     self.db.add(obj)
                     t = ticket_data
@@ -204,35 +195,48 @@ class SyncService:
                     obj.escalation_at = parse_dt(t.get("escalation_at"))
                     obj.pending_time = parse_dt(t.get("pending_time"))
                     obj.created_at = parse_dt(t.get("created_at"))
-                    obj.updated_at = parse_dt(t.get("updated_at"))
+                    obj.updated_at = remote_updated_at
+                    obj.is_deleted = False
                     count += 1
                 self.db.commit()
                 if len(data) < per_page:
                     break
                 page += 1
 
-            self._log_finish(log, count, message=f"changed_tickets={len(set(changed_ticket_ids))}")
-            return {"count": count, "changed_ticket_ids": list(dict.fromkeys(changed_ticket_ids))}
+            # Reconcile deletions only after the complete pagination loop succeeds.
+            # If any page request raises, execution jumps to except before this block,
+            # so a partial Zammad response can never mass-mark tickets as deleted.
+            deleted_count = 0
+            if seen_ticket_ids:
+                deleted_count = (
+                    self.db.query(Ticket)
+                    .filter(Ticket.is_deleted.is_(False))
+                    .filter(~Ticket.id.in_(seen_ticket_ids))
+                    .update({Ticket.is_deleted: True}, synchronize_session=False)
+                )
+                self.db.commit()
+
+            message = (
+                f"changed_tickets={len(set(changed_ticket_ids))}, "
+                f"deleted_in_zammad={deleted_count}"
+            )
+            self._log_finish(log, count, message=message)
+            return {
+                "count": count,
+                "changed_ticket_ids": list(dict.fromkeys(changed_ticket_ids)),
+                "deleted_in_zammad": deleted_count,
+            }
         except Exception as exc:
             self._log_fail(log, exc)
             raise
 
     def sync_ticket_history(self, ticket_id=None):
-        """Synchronize immutable Zammad ticket history.
-
-        With ticket_id set, synchronize one ticket (useful for testing).
-        Without it, synchronize all tickets already present in the local DB.
-        Existing history rows are updated by zammad_history_id, so reruns are safe.
-        """
         log = self._log_start("ticket_history")
         try:
             if ticket_id is not None:
                 ticket_ids = [int(ticket_id)]
             else:
-                ticket_ids = [
-                    row[0]
-                    for row in self.db.query(Ticket.id).order_by(Ticket.id).all()
-                ]
+                ticket_ids = [row[0] for row in self.db.query(Ticket.id).order_by(Ticket.id).all()]
 
             count = 0
             tickets_done = 0
@@ -242,8 +246,6 @@ class SyncService:
                 try:
                     data = self._get_json(f"/api/v1/ticket_history/{current_ticket_id}")
                 except RuntimeError as exc:
-                    # Local DB may contain tickets that were deleted from Zammad.
-                    # A missing remote ticket must not abort synchronization of all history.
                     if " 404 " in str(exc):
                         skipped += 1
                         tickets_done += 1
@@ -258,20 +260,15 @@ class SyncService:
                 if not isinstance(history, list):
                     failed += 1
                     tickets_done += 1
-                    print(
-                        f"ticket_history unexpected response ticket={current_ticket_id}: {data}"
-                    )
+                    print(f"ticket_history unexpected response ticket={current_ticket_id}: {data}")
                     continue
 
                 for event in history:
-                    # Only Ticket events belong to ticket_history. Ticket::Article and
-                    # notification rows are intentionally skipped for reporting-v2.
                     if event.get("object") != "Ticket":
                         continue
                     zammad_id = event.get("id")
                     if zammad_id is None:
                         continue
-
                     obj = (
                         self.db.query(TicketHistory)
                         .filter(TicketHistory.zammad_history_id == zammad_id)
@@ -280,7 +277,6 @@ class SyncService:
                     if obj is None:
                         obj = TicketHistory(zammad_history_id=zammad_id)
                         self.db.add(obj)
-
                     obj.ticket_id = current_ticket_id
                     obj.object = event.get("object")
                     obj.event_type = event.get("type")
@@ -296,25 +292,14 @@ class SyncService:
                 self.db.commit()
                 tickets_done += 1
                 if tickets_done % 100 == 0:
-                    print(
-                        f"ticket_history tickets={tickets_done}/{len(ticket_ids)}, "
-                        f"events={count}"
-                    )
+                    print(f"ticket_history tickets={tickets_done}/{len(ticket_ids)}, events={count}")
 
             self._log_finish(
                 log,
                 count,
-                message=(
-                    f"tickets={tickets_done}, events={count}, "
-                    f"skipped={skipped}, failed={failed}"
-                ),
+                message=f"tickets={tickets_done}, events={count}, skipped={skipped}, failed={failed}",
             )
-            return {
-                "tickets": tickets_done,
-                "events": count,
-                "skipped": skipped,
-                "failed": failed,
-            }
+            return {"tickets": tickets_done, "events": count, "skipped": skipped, "failed": failed}
         except Exception as exc:
             self._log_fail(log, exc)
             raise
@@ -359,6 +344,7 @@ class SyncService:
             "organizations": organizations,
             "states": states,
             "tickets": tickets_result["count"],
+            "deleted_in_zammad": tickets_result.get("deleted_in_zammad", 0),
             "history": history,
             "history_changed_tickets": len(changed_ticket_ids),
         }
