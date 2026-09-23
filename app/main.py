@@ -8,7 +8,7 @@ from app.auth import bootstrap_admin
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.routes import api, auth_routes, sync, ui, users_admin
-from app.routes import admin_regions, excluded_groups
+from app.routes import admin_regions, excluded_groups, sla_dashboard
 from app.services.app_settings_service import get_app_setting
 from app.services.report_group_exclusions import (
     parse_excluded_group_ids,
@@ -52,6 +52,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth_routes.router)
 app.include_router(ui.router)
+app.include_router(sla_dashboard.router)
 app.include_router(sync.router)
 app.include_router(api.router)
 app.include_router(users_admin.router)
