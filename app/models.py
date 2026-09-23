@@ -78,6 +78,7 @@ class Ticket(Base):
     update_in_min = Column(Integer, nullable=True)
     update_diff_in_min = Column(Integer, nullable=True)
     pending_time = Column(DateTime, nullable=True)
+    is_deleted = Column(Boolean, default=False, nullable=False, index=True)
 
 
 class TicketHistory(Base):
