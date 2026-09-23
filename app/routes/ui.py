@@ -155,138 +155,51 @@ def index(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/reports/statuses", response_class=HTMLResponse)
 @login_required_page
-def statuses(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def statuses(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = ReportService(db).tickets_by_status(date_from, date_to)
-    return templates.TemplateResponse(
-        "statuses.html",
-        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
-    )
-
+    return templates.TemplateResponse("statuses.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user})
 
 @router.get("/reports/agents", response_class=HTMLResponse)
 @login_required_page
-def agents(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def agents(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = ReportService(db).tickets_by_agent(date_from, date_to)
-    return templates.TemplateResponse(
-        "agents.html",
-        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
-    )
-
+    return templates.TemplateResponse("agents.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user})
 
 @router.get("/reports/groups", response_class=HTMLResponse)
 @login_required_page
-def groups(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def groups(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = ReportService(db).tickets_by_group(date_from, date_to)
-    return templates.TemplateResponse(
-        "groups.html",
-        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
-    )
-
+    return templates.TemplateResponse("groups.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user})
 
 @router.get("/reports/organizations", response_class=HTMLResponse)
 @login_required_page
-def organizations(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def organizations(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = ReportService(db).tickets_by_organization(date_from, date_to)
-    return templates.TemplateResponse(
-        "organizations.html",
-        {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user},
-    )
-
+    return templates.TemplateResponse("organizations.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user})
 
 @router.get("/reports/regional-summary", response_class=HTMLResponse)
 @login_required_page
-def regional_summary(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def regional_summary(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = []
     if date_from and date_to:
         rows = ReportService(db).regional_period_report(date_from, date_to)
-
-    return templates.TemplateResponse(
-        "regional_summary.html",
-        {
-            "request": request,
-            "rows": rows,
-            "date_from": date_from,
-            "date_to": date_to,
-            "current_user": request.state.current_user,
-        },
-    )
-
+    return templates.TemplateResponse("regional_summary.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user})
 
 @router.get("/reports/sla", response_class=HTMLResponse)
 @login_required_page
-def sla_report(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def sla_report(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     rows = ReportService(db).sla_report(date_from, date_to)
-    return templates.TemplateResponse(
-        "sla_report.html",
-        {
-            "request": request,
-            "rows": rows,
-            "date_from": date_from,
-            "date_to": date_to,
-            "current_user": request.state.current_user,
-            "sla_response_minutes": get_metric_int(db, "sla_response_minutes"),
-            "sla_resolution_hours": get_metric_int(db, "sla_resolution_hours"),
-        },
-    )
-
+    return templates.TemplateResponse("sla_report.html", {"request": request, "rows": rows, "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user, "sla_response_minutes": get_metric_int(db, "sla_response_minutes"), "sla_resolution_hours": get_metric_int(db, "sla_resolution_hours")})
 
 @router.get("/reports/workload", response_class=HTMLResponse)
 @login_required_page
-def workload_report(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
+def workload_report(request: Request, date_from: str | None = Query(None), date_to: str | None = Query(None), db: Session = Depends(get_db)):
     data = ReportService(db).workload_report(date_from, date_to)
-    return templates.TemplateResponse(
-        "workload_report.html",
-        {
-            "request": request,
-            "agent_rows": data["agents"],
-            "trend_rows": data["trend"],
-            "date_from": date_from,
-            "date_to": date_to,
-            "current_user": request.state.current_user,
-            "workload_open_warning": get_metric_int(db, "workload_open_warning"),
-            "workload_open_critical": get_metric_int(db, "workload_open_critical"),
-            "backlog_delta_warning": get_metric_int(db, "backlog_delta_warning"),
-        },
-    )
-
+    return templates.TemplateResponse("workload_report.html", {"request": request, "agent_rows": data["agents"], "trend_rows": data["trend"], "date_from": date_from, "date_to": date_to, "current_user": request.state.current_user, "workload_open_warning": get_metric_int(db, "workload_open_warning"), "workload_open_critical": get_metric_int(db, "workload_open_critical"), "backlog_delta_warning": get_metric_int(db, "backlog_delta_warning")})
 
 REPORT_VISIBILITY_OPTIONS = [
     ("statuses", "Статусы"), ("agents", "Исполнители"), ("engineers", "Отчет по инженерам"),
+    ("sla_dashboard", "Общий отчет по SLA"),
     ("sla_first_response", "История SLA: первый ответ"), ("sla_resolution", "История SLA: закрытие"),
     ("sla_current", "Текущие нарушения SLA"), ("groups", "Группы"), ("organizations", "Организации"),
     ("regional_summary", "Сводный отчет"), ("transfers", "Переводы"), ("reopened", "Повторные открытия"),
@@ -304,474 +217,141 @@ def report_visibility_settings(request: Request, db: Session = Depends(get_db)):
     by_key = dict(REPORT_VISIBILITY_OPTIONS)
     ordered_keys = order + [key for key, _ in REPORT_VISIBILITY_OPTIONS if key not in order]
     reports = [(key, by_key[key]) for key in ordered_keys if key in by_key]
-    return templates.TemplateResponse("report_visibility_settings.html", {
-        "request": request, "reports": reports, "enabled": enabled,
-        "current_user": request.state.current_user,
-    })
+    return templates.TemplateResponse("report_visibility_settings.html", {"request": request, "reports": reports, "enabled": enabled, "current_user": request.state.current_user})
 
 @router.post("/admin/report-visibility")
 @admin_required_page
-def report_visibility_settings_save(
-    request: Request,
-    enabled_reports: list[str] = Form(default=[]),
-    report_order: str = Form(""),
-    db: Session = Depends(get_db),
-):
+def report_visibility_settings_save(request: Request, enabled_reports: list[str] = Form(default=[]), report_order: str = Form(""), db: Session = Depends(get_db)):
     allowed = {key for key, _ in REPORT_VISIBILITY_OPTIONS}
     enabled = [key for key in enabled_reports if key in allowed]
     requested_order = [key for key in report_order.split(",") if key in allowed]
     order = requested_order + [key for key, _ in REPORT_VISIBILITY_OPTIONS if key not in requested_order]
-    update_app_settings(db, {
-        "report_visibility": ",".join(enabled),
-        "report_order": ",".join(order),
-    })
+    update_app_settings(db, {"report_visibility": ",".join(enabled), "report_order": ",".join(order)})
     return RedirectResponse("/admin/report-visibility", status_code=302)
-
 
 @router.get("/admin/report-metrics", response_class=HTMLResponse)
 @admin_required_page
 def report_metrics_settings(request: Request, db: Session = Depends(get_db)):
     metrics = get_metric_settings(db)
-    return templates.TemplateResponse(
-        "metrics_settings.html",
-        {"request": request, "metrics": metrics, "current_user": request.state.current_user},
-    )
-
+    return templates.TemplateResponse("metrics_settings.html", {"request": request, "metrics": metrics, "current_user": request.state.current_user})
 
 @router.post("/admin/report-metrics")
 @admin_required_page
-def report_metrics_settings_save(
-    request: Request,
-    db: Session = Depends(get_db),
-    sla_response_minutes: str = Form(""),
-    sla_resolution_hours: str = Form(""),
-    workload_open_warning: str = Form(""),
-    workload_open_critical: str = Form(""),
-    backlog_delta_warning: str = Form(""),
-):
-    update_metric_settings(
-        db,
-        {
-            "sla_response_minutes": sla_response_minutes,
-            "sla_resolution_hours": sla_resolution_hours,
-            "workload_open_warning": workload_open_warning,
-            "workload_open_critical": workload_open_critical,
-            "backlog_delta_warning": backlog_delta_warning,
-        },
-    )
+def report_metrics_settings_save(request: Request, db: Session = Depends(get_db), sla_response_minutes: str = Form(""), sla_resolution_hours: str = Form(""), workload_open_warning: str = Form(""), workload_open_critical: str = Form(""), backlog_delta_warning: str = Form("")):
+    update_metric_settings(db, {"sla_response_minutes": sla_response_minutes, "sla_resolution_hours": sla_resolution_hours, "workload_open_warning": workload_open_warning, "workload_open_critical": workload_open_critical, "backlog_delta_warning": backlog_delta_warning})
     return RedirectResponse("/admin/report-metrics", status_code=302)
-
 
 @router.get("/admin/settings", response_class=HTMLResponse)
 @admin_required_page
 def app_settings_page(request: Request, db: Session = Depends(get_db)):
     app_settings = get_app_settings(db)
-    return templates.TemplateResponse(
-        "app_settings.html",
-        {
-            "request": request,
-            "app_settings": app_settings,
-            "current_user": request.state.current_user,
-        },
-    )
-
+    return templates.TemplateResponse("app_settings.html", {"request": request, "app_settings": app_settings, "current_user": request.state.current_user})
 
 @router.post("/admin/settings")
 @admin_required_page
-def app_settings_save(
-    request: Request,
-    db: Session = Depends(get_db),
-    app_name: str = Form(""),
-    debug: str = Form("0"),
-    zammad_url: str = Form(""),
-    zammad_token: str = Form(""),
-    zammad_verify_ssl: str = Form("1"),
-    zammad_per_page: str = Form("100"),
-    tz: str = Form(""),
-    sync_token: str = Form(""),
-):
-    update_app_settings(
-        db,
-        {
-            "app_name": app_name,
-            "debug": debug,
-            "zammad_url": zammad_url,
-            "zammad_token": zammad_token,
-            "zammad_verify_ssl": zammad_verify_ssl,
-            "zammad_per_page": zammad_per_page,
-            "tz": tz,
-            "sync_token": sync_token,
-        },
-    )
+def app_settings_save(request: Request, db: Session = Depends(get_db), app_name: str = Form(""), debug: str = Form("0"), zammad_url: str = Form(""), zammad_token: str = Form(""), zammad_verify_ssl: str = Form("1"), zammad_per_page: str = Form("100"), tz: str = Form(""), sync_token: str = Form("")):
+    update_app_settings(db, {"app_name": app_name, "debug": debug, "zammad_url": zammad_url, "zammad_token": zammad_token, "zammad_verify_ssl": zammad_verify_ssl, "zammad_per_page": zammad_per_page, "tz": tz, "sync_token": sync_token})
     return RedirectResponse("/admin/settings", status_code=302)
-
 
 @router.post("/sync/run")
 @login_required_page
 def run_sync(request: Request, db: Session = Depends(get_db)):
-    if SYNC_LOCK.locked():
-        return RedirectResponse("/?sync_status=already_running", status_code=302)
-
+    if SYNC_LOCK.locked(): return RedirectResponse("/?sync_status=already_running", status_code=302)
     def _sync_job():
-        if not SYNC_LOCK.acquire(blocking=False):
-            return
+        if not SYNC_LOCK.acquire(blocking=False): return
         bg_db = SessionLocal()
         try:
-            zammad_url = get_app_setting(bg_db, "zammad_url")
-            zammad_token = get_app_setting(bg_db, "zammad_token")
-            if not zammad_url or not zammad_token:
-                return
+            zammad_url = get_app_setting(bg_db, "zammad_url"); zammad_token = get_app_setting(bg_db, "zammad_token")
+            if not zammad_url or not zammad_token: return
             SyncService(bg_db, zammad_url, zammad_token).sync_all()
         finally:
-            bg_db.close()
-            SYNC_LOCK.release()
-
+            bg_db.close(); SYNC_LOCK.release()
     threading.Thread(target=_sync_job, daemon=True).start()
     return RedirectResponse("/?sync_status=started", status_code=302)
 
-
 @router.get("/reports/transfers", response_class=HTMLResponse)
 @login_required_page
-def transfers(
-    request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None),
-    region: str|None=Query(None), engineer_id: str|None=Query(None),
-    organization_id: str|None=Query(None), ticket_number: str|None=Query(None),
-    sort_by: str=Query("transferred_at"), sort_order: str=Query("desc"),
-    db: Session=Depends(get_db),
-):
-    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.ticket_transfers(date_from,date_to,region,engineer_id_value,organization_id_value,ticket_number,sort_by,sort_order)
-    options = service.transfer_filter_options()
-    return templates.TemplateResponse("transfers.html", {
-        "request":request,"rows":rows,"options":options,"date_from":date_from,"date_to":date_to,
-        "region":region,"engineer_id":engineer_id_value,"organization_id":organization_id_value,
-        "ticket_number":ticket_number,"sort_by":sort_by,"sort_order":sort_order,
-        "current_user":request.state.current_user,
-    })
+def transfers(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), ticket_number: str|None=Query(None), sort_by: str=Query("transferred_at"), sort_order: str=Query("desc"), db: Session=Depends(get_db)):
+    engineer_id_value=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; organization_id_value=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.ticket_transfers(date_from,date_to,region,engineer_id_value,organization_id_value,ticket_number,sort_by,sort_order); options=service.transfer_filter_options()
+    return templates.TemplateResponse("transfers.html", {"request":request,"rows":rows,"options":options,"date_from":date_from,"date_to":date_to,"region":region,"engineer_id":engineer_id_value,"organization_id":organization_id_value,"ticket_number":ticket_number,"sort_by":sort_by,"sort_order":sort_order,"current_user":request.state.current_user})
 
 @router.post("/sync/history/run")
 @login_required_page
 def run_history_sync(request: Request, db: Session = Depends(get_db)):
-    if SYNC_LOCK.locked():
-        return RedirectResponse("/?sync_status=already_running", status_code=302)
-
+    if SYNC_LOCK.locked(): return RedirectResponse("/?sync_status=already_running", status_code=302)
     def _history_job():
-        if not SYNC_LOCK.acquire(blocking=False):
-            return
-        bg_db = SessionLocal()
+        if not SYNC_LOCK.acquire(blocking=False): return
+        bg_db=SessionLocal()
         try:
-            zammad_url = get_app_setting(bg_db, "zammad_url")
-            zammad_token = get_app_setting(bg_db, "zammad_token")
-            if not zammad_url or not zammad_token:
-                return
-            SyncService(bg_db, zammad_url, zammad_token).sync_ticket_history()
-        except Exception as exc:
-            print(f"ticket_history background sync failed: {exc}")
-        finally:
-            bg_db.close()
-            SYNC_LOCK.release()
-
-    threading.Thread(target=_history_job, daemon=True).start()
-    return RedirectResponse("/?sync_status=history_started", status_code=302)
+            zammad_url=get_app_setting(bg_db,"zammad_url"); zammad_token=get_app_setting(bg_db,"zammad_token")
+            if not zammad_url or not zammad_token: return
+            SyncService(bg_db,zammad_url,zammad_token).sync_ticket_history()
+        except Exception as exc: print(f"ticket_history background sync failed: {exc}")
+        finally: bg_db.close(); SYNC_LOCK.release()
+    threading.Thread(target=_history_job,daemon=True).start(); return RedirectResponse("/?sync_status=history_started",status_code=302)
 
 @router.get("/reports/reopened", response_class=HTMLResponse)
 @login_required_page
-def reopened(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    region: str | None = Query(None),
-    engineer_id: str | None = Query(None),
-    organization_id: str | None = Query(None),
-    ticket_number: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.reopened_tickets(
-        date_from, date_to, region, engineer_id_value,
-        organization_id_value, ticket_number,
-    )
-    return templates.TemplateResponse(
-        "reopened.html",
-        {
-            "request": request,
-            "rows": rows,
-            "options": service.transfer_filter_options(),
-            "date_from": date_from,
-            "date_to": date_to,
-            "region": region,
-            "engineer_id": engineer_id_value,
-            "organization_id": organization_id_value,
-            "ticket_number": ticket_number,
-            "current_user": request.state.current_user,
-        },
-    )
+def reopened(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), ticket_number: str|None=Query(None), db: Session=Depends(get_db)):
+    eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.reopened_tickets(date_from,date_to,region,eid,oid,ticket_number)
+    return templates.TemplateResponse("reopened.html", {"request":request,"rows":rows,"options":service.transfer_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"engineer_id":eid,"organization_id":oid,"ticket_number":ticket_number,"current_user":request.state.current_user})
 
 @router.get("/reports/returns", response_class=HTMLResponse)
 @login_required_page
-def returns_report(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    region: str | None = Query(None),
-    engineer_id: str | None = Query(None),
-    organization_id: str | None = Query(None),
-    ticket_number: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.returned_tickets(
-        date_from, date_to, region, engineer_id_value,
-        organization_id_value, ticket_number,
-    )
-    return templates.TemplateResponse(
-        "returns.html",
-        {
-            "request": request,
-            "rows": rows,
-            "options": service.transfer_filter_options(),
-            "date_from": date_from,
-            "date_to": date_to,
-            "region": region,
-            "engineer_id": engineer_id_value,
-            "organization_id": organization_id_value,
-            "ticket_number": ticket_number,
-            "current_user": request.state.current_user,
-        },
-    )
+def returns_report(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), ticket_number: str|None=Query(None), db: Session=Depends(get_db)):
+    eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.returned_tickets(date_from,date_to,region,eid,oid,ticket_number)
+    return templates.TemplateResponse("returns.html", {"request":request,"rows":rows,"options":service.transfer_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"engineer_id":eid,"organization_id":oid,"ticket_number":ticket_number,"current_user":request.state.current_user})
 
 @router.get("/reports/engineer-workload", response_class=HTMLResponse)
 @login_required_page
-def engineer_workload(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    region: str | None = Query(None),
-    engineer_id: str | None = Query(None),
-    organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.engineer_activity_report(
-        date_from, date_to, region, engineer_id_value, organization_id_value,
-    )
-    return templates.TemplateResponse("engineer_workload.html", {
-        "request": request, "rows": rows, "options": service.transfer_filter_options(),
-        "date_from": date_from, "date_to": date_to, "region": region,
-        "engineer_id": engineer_id_value, "organization_id": organization_id_value,
-        "current_user": request.state.current_user,
-    })
+def engineer_workload(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.engineer_activity_report(date_from,date_to,region,eid,oid)
+    return templates.TemplateResponse("engineer_workload.html", {"request":request,"rows":rows,"options":service.transfer_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"engineer_id":eid,"organization_id":oid,"current_user":request.state.current_user})
 
 @router.get("/reports/closure-time", response_class=HTMLResponse)
 @login_required_page
-def closure_time(
-    request: Request,
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    region: str | None = Query(None),
-    engineer_id: str | None = Query(None),
-    organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    engineer_id_value = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    organization_id_value = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.closure_time_report(
-        date_from, date_to, region, engineer_id_value, organization_id_value,
-    )
-    return templates.TemplateResponse("closure_time.html", {
-        "request": request, "rows": rows, "options": service.transfer_filter_options(),
-        "date_from": date_from, "date_to": date_to, "region": region,
-        "engineer_id": engineer_id_value, "organization_id": organization_id_value,
-        "current_user": request.state.current_user,
-    })
+def closure_time(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.closure_time_report(date_from,date_to,region,eid,oid)
+    return templates.TemplateResponse("closure_time.html", {"request":request,"rows":rows,"options":service.transfer_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"engineer_id":eid,"organization_id":oid,"current_user":request.state.current_user})
 
 @router.get("/reports/engineers", response_class=HTMLResponse)
 @login_required_page
-def engineers_report(
-    request: Request,
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.engineer_report(date_from, date_to, region, gid, eid, oid)
-    return templates.TemplateResponse("engineers_report.html", {
-        "request": request, "rows": rows, "options": service.engineer_report_filter_options(),
-        "date_from": date_from, "date_to": date_to, "region": region,
-        "group_id": gid, "engineer_id": eid, "organization_id": oid,
-        "current_user": request.state.current_user,
-    })
+def engineers_report(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.engineer_report(date_from,date_to,region,gid,eid,oid)
+    return templates.TemplateResponse("engineers_report.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"current_user":request.state.current_user})
 
 @router.get("/reports/engineers/overdue", response_class=HTMLResponse)
 @login_required_page
-def engineer_overdue_tickets(
-    request: Request,
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.overdue_tickets(region, gid, eid, oid)
-    return templates.TemplateResponse("overdue_tickets.html", {
-        "request": request, "rows": rows, "current_user": request.state.current_user,
-    })
+def engineer_overdue_tickets(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; rows=ReportService(db).overdue_tickets(region,gid,eid,oid)
+    return templates.TemplateResponse("overdue_tickets.html", {"request":request,"rows":rows,"current_user":request.state.current_user})
 
 @router.get("/reports/engineers/sla-violations", response_class=HTMLResponse)
 @login_required_page
-def engineer_sla_violations(
-    request: Request,
-    violation_type: str = Query(...),
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.sla_violation_tickets(
-        violation_type, date_from, date_to, region, gid, eid, oid,
-    )
-    title = "Нарушения First Response SLA" if violation_type == "first_response" else "Нарушения Resolution SLA"
-    return templates.TemplateResponse("sla_violation_tickets.html", {
-        "request": request, "rows": rows, "title": title,
-        "violation_type": violation_type, "current_user": request.state.current_user,
-    })
+def engineer_sla_violations(request: Request, violation_type: str=Query(...), date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; rows=ReportService(db).sla_violation_tickets(violation_type,date_from,date_to,region,gid,eid,oid); title="Нарушения First Response SLA" if violation_type=="first_response" else "Нарушения Resolution SLA"
+    return templates.TemplateResponse("sla_violation_tickets.html", {"request":request,"rows":rows,"title":title,"violation_type":violation_type,"current_user":request.state.current_user})
 
 @router.get("/reports/engineers/tickets", response_class=HTMLResponse)
 @login_required_page
-def engineer_ticket_details(
-    request: Request, metric: str = Query(...),
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.engineer_ticket_details(metric, date_from, date_to, region, gid, eid, oid)
-    titles = {
-        "assigned": "Назначенные заявки", "closed": "Закрытые заявки",
-        "open": "Открытые заявки", "new": "Новые заявки",
-    }
-    return templates.TemplateResponse("engineer_ticket_details.html", {
-        "request": request, "rows": rows, "title": titles.get(metric, "Заявки"),
-        "metric": metric, "current_user": request.state.current_user,
-    })
+def engineer_ticket_details(request: Request, metric: str=Query(...), date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; rows=ReportService(db).engineer_ticket_details(metric,date_from,date_to,region,gid,eid,oid); titles={"assigned":"Назначенные заявки","closed":"Закрытые заявки","open":"Открытые заявки","new":"Новые заявки"}
+    return templates.TemplateResponse("engineer_ticket_details.html", {"request":request,"rows":rows,"title":titles.get(metric,"Заявки"),"metric":metric,"current_user":request.state.current_user})
 
 @router.get("/reports/sla-violations", response_class=HTMLResponse)
 @login_required_page
-def sla_violations_report(
-    request: Request,
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    violation_type: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.sla_violations_report(
-        date_from, date_to, region, gid, eid, oid, violation_type,
-    )
-    return templates.TemplateResponse("sla_violations_report.html", {
-        "request": request, "rows": rows,
-        "options": service.engineer_report_filter_options(),
-        "date_from": date_from, "date_to": date_to, "region": region,
-        "group_id": gid, "engineer_id": eid, "organization_id": oid,
-        "violation_type": violation_type or "all",
-        "current_user": request.state.current_user,
-    })
+def sla_violations_report(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), violation_type: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.sla_violations_report(date_from,date_to,region,gid,eid,oid,violation_type)
+    return templates.TemplateResponse("sla_violations_report.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"violation_type":violation_type or "all","current_user":request.state.current_user})
 
 @router.get("/reports/sla-current", response_class=HTMLResponse)
 @login_required_page
-def sla_current_report(
-    request: Request,
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.current_sla_violations(region, gid, eid, oid)
-    return templates.TemplateResponse("sla_current_report.html", {
-        "request": request, "rows": rows, "options": service.engineer_report_filter_options(),
-        "region": region, "group_id": gid, "engineer_id": eid,
-        "organization_id": oid, "current_user": request.state.current_user,
-    })
+def sla_current_report(request: Request, region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.current_sla_violations(region,gid,eid,oid)
+    return templates.TemplateResponse("sla_current.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"current_user":request.state.current_user})
 
 @router.get("/reports/overdue", response_class=HTMLResponse)
 @login_required_page
-def overdue_report(
-    request: Request,
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), group_id: str | None = Query(None),
-    engineer_id: str | None = Query(None), organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    gid = int(group_id) if group_id and group_id.isdigit() else None
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.overdue_tickets(date_from, date_to, region, gid, eid, oid)
-    return templates.TemplateResponse("overdue_report.html", {
-        "request": request, "rows": rows,
-        "date_from": date_from, "date_to": date_to,
-        "options": service.engineer_report_filter_options(),
-        "region": region, "group_id": gid, "engineer_id": eid,
-        "organization_id": oid, "current_user": request.state.current_user,
-    })
-
-@router.get("/reports/engineer-workload/details", response_class=HTMLResponse)
-@login_required_page
-def engineer_workload_details(
-    request: Request, metric: str = Query(...),
-    date_from: str | None = Query(None), date_to: str | None = Query(None),
-    region: str | None = Query(None), engineer_id: str | None = Query(None),
-    organization_id: str | None = Query(None),
-    db: Session = Depends(get_db),
-):
-    eid = int(engineer_id) if engineer_id and engineer_id.isdigit() else None
-    oid = int(organization_id) if organization_id and organization_id.isdigit() else None
-    service = ReportService(db)
-    rows = service.engineer_workload_details(
-        metric, date_from, date_to, region, eid, oid,
-    )
-    titles = {
-        "assigned": "Назначенные заявки",
-        "transferred_in": "Получено переводом",
-        "transferred_out": "Передано другому инженеру",
-        "closed": "Закрытые заявки",
-        "open_now": "Открытые сейчас",
-        "overdue_now": "Просроченные сейчас",
-    }
-    return templates.TemplateResponse("engineer_workload_details.html", {
-        "request": request, "rows": rows, "metric": metric,
-        "title": titles.get(metric, "Заявки"),
-        "current_user": request.state.current_user,
-    })
-
+def overdue_report(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), db: Session=Depends(get_db)):
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.overdue_tickets(date_from,date_to,region,gid,eid,oid)
+    return templates.TemplateResponse("overdue_report.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"current_user":request.state.current_user})
