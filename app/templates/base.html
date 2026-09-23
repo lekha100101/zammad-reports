@@ -36,6 +36,7 @@
                   <a href="{{ item.url }}" class="menu-btn {% if request.url.path == item.url %}active{% endif %}">{{ item.name }}</a>
                 {% endif %}
               {% endfor %}
+              <a href="/reports/sla-dashboard" class="menu-btn {% if request.url.path == '/reports/sla-dashboard' %}active{% endif %}">Общий отчет по SLA</a>
             </div>
 
             <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle data-icon="fa-gears" aria-expanded="true">
