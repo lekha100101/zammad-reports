@@ -18,6 +18,7 @@ APP_SETTING_DEFAULTS = {
     "sync_token": "",
     "report_visibility": "",
     "report_order": "",
+    "excluded_report_group_ids": "",
 }
 
 
