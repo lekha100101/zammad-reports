@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -9,6 +9,12 @@ from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.routes import api, auth_routes, sync, ui, users_admin
 from app.routes import admin_regions, excluded_groups
+from app.services.app_settings_service import get_app_setting
+from app.services.report_group_exclusions import (
+    parse_excluded_group_ids,
+    reset_report_excluded_group_ids,
+    set_report_excluded_group_ids,
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -20,6 +26,27 @@ app.add_middleware(
     same_site="lax",
     https_only=os.getenv("SESSION_HTTPS_ONLY", "false").lower() == "true",
 )
+
+
+@app.middleware("http")
+async def report_group_exclusion_middleware(request: Request, call_next):
+    # Exclusions affect analytics only. Sync/API/admin data remains complete.
+    is_report_request = request.url.path == "/" or request.url.path.startswith("/reports/")
+    token = None
+    if is_report_request:
+        db = SessionLocal()
+        try:
+            group_ids = parse_excluded_group_ids(get_app_setting(db, "excluded_report_group_ids"))
+        finally:
+            db.close()
+        token = set_report_excluded_group_ids(group_ids)
+
+    try:
+        return await call_next(request)
+    finally:
+        if token is not None:
+            reset_report_excluded_group_ids(token)
+
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
