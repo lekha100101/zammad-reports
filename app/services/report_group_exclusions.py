@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session, with_loader_criteria
 
 from app.models import Ticket
 
-_report_excluded_group_ids: ContextVar[tuple[int, ...]] = ContextVar(
-    "report_excluded_group_ids", default=()
+# None means this is not a report request. An empty tuple means it is a report
+# request but the administrator has not excluded any groups.
+_report_excluded_group_ids: ContextVar[tuple[int, ...] | None] = ContextVar(
+    "report_excluded_group_ids", default=None
 )
 
 
@@ -35,19 +37,23 @@ def _apply_report_group_exclusions(execute_state):
     if not execute_state.is_select:
         return
 
-    # This listener is active only inside report requests because the middleware
-    # sets the context variable there. Deleted tickets and administratively
-    # excluded groups remain available to sync/admin code outside that context.
     excluded_group_ids = _report_excluded_group_ids.get()
-    if not excluded_group_ids:
-        # An empty tuple is also a valid report context, so deleted tickets are
-        # filtered by the middleware setting a sentinel-free report context below.
+    if excluded_group_ids is None:
         return
 
-    execute_state.statement = execute_state.statement.options(
-        with_loader_criteria(
-            Ticket,
-            lambda ticket: (ticket.is_deleted.is_(False)) & (~ticket.group_id.in_(excluded_group_ids)),
-            include_aliases=True,
+    if excluded_group_ids:
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                Ticket,
+                lambda ticket: (ticket.is_deleted.is_(False)) & (~ticket.group_id.in_(excluded_group_ids)),
+                include_aliases=True,
+            )
         )
-    )
+    else:
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                Ticket,
+                lambda ticket: ticket.is_deleted.is_(False),
+                include_aliases=True,
+            )
+        )
