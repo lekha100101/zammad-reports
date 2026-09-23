@@ -47,8 +47,15 @@ def get_app_setting_bool(db: Session, key: str) -> bool:
 
 
 def update_app_settings(db: Session, payload: dict[str, str]) -> None:
-    for key, default in APP_SETTING_DEFAULTS.items():
-        raw = payload.get(key)
+    # Partial update: only keys explicitly supplied by the caller are changed.
+    # Previously missing keys were reset to APP_SETTING_DEFAULTS, so saving one
+    # admin form erased settings owned by another form (for example report
+    # visibility vs excluded report groups).
+    for key, raw in payload.items():
+        if key not in APP_SETTING_DEFAULTS:
+            continue
+
+        default = APP_SETTING_DEFAULTS[key]
         value = str(raw).strip() if raw is not None else str(default)
         if key in {"debug", "zammad_verify_ssl"}:
             value = "1" if to_bool(value, False) else "0"
