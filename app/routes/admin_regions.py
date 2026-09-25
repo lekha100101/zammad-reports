@@ -4,10 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.auth import login_required_page
 from app.deps import get_db
+from app.routes.ui import templates
 from app.models import Group, ReportRegion
-from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="app/templates")
 
 router = APIRouter(prefix="/admin/regions")
 
