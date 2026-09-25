@@ -357,8 +357,8 @@ def engineer_ticket_details(request: Request, metric: str=Query(...), date_from:
 @router.get("/reports/sla-violations", response_class=HTMLResponse)
 @login_required_page
 def sla_violations_report(request: Request, date_from: str|None=Query(None), date_to: str|None=Query(None), region: str|None=Query(None), group_id: str|None=Query(None), engineer_id: str|None=Query(None), organization_id: str|None=Query(None), violation_type: str|None=Query(None), db: Session=Depends(get_db)):
-    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); rows=service.sla_violations_report(date_from,date_to,region,gid,eid,oid,violation_type)
-    return templates.TemplateResponse("sla_violations_report.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"violation_type":violation_type or "all","current_user":request.state.current_user})
+    gid=int(group_id) if group_id and group_id.isdigit() else None; eid=int(engineer_id) if engineer_id and engineer_id.isdigit() else None; oid=int(organization_id) if organization_id and organization_id.isdigit() else None; service=ReportService(db); effective_violation_type=violation_type if violation_type in ("first_response","resolution") else "first_response"; rows=service.sla_violations_report(date_from,date_to,region,gid,eid,oid,effective_violation_type)
+    return templates.TemplateResponse("sla_violations_report.html", {"request":request,"rows":rows,"options":service.engineer_report_filter_options(),"date_from":date_from,"date_to":date_to,"region":region,"group_id":gid,"engineer_id":eid,"organization_id":oid,"violation_type":effective_violation_type,"current_user":request.state.current_user})
 
 @router.get("/reports/sla-current", response_class=HTMLResponse)
 @login_required_page
