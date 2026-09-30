@@ -59,6 +59,7 @@ class SlaDashboardService:
         tickets = q.all()
         trend = defaultdict(lambda: {"response_ok": 0, "response_total": 0, "resolution_ok": 0, "resolution_total": 0})
         engineers = defaultdict(lambda: {"response_ok": 0, "response_total": 0, "resolution_ok": 0, "resolution_total": 0})
+        support_groups = defaultdict(lambda: {"response_ok": 0, "response_total": 0, "resolution_ok": 0, "resolution_total": 0})
         totals = {"response_ok": 0, "response_total": 0, "resolution_ok": 0, "resolution_total": 0}
 
         for t in tickets:
@@ -67,6 +68,7 @@ class SlaDashboardService:
                 continue
 
             engineer_key = (t.owner_id, users.get(t.owner_id, str(t.owner_id)))
+            group_key = (t.group_id, groups.get(t.group_id, "Без группы"))
 
             response_in_period = (
                 t.first_response_at is not None
@@ -78,10 +80,12 @@ class SlaDashboardService:
                 bucket = self._bucket(t.first_response_at, bucket_mode)
                 trend[bucket]["response_total"] += 1
                 engineers[engineer_key]["response_total"] += 1
+                support_groups[group_key]["response_total"] += 1
                 totals["response_total"] += 1
                 if ok:
                     trend[bucket]["response_ok"] += 1
                     engineers[engineer_key]["response_ok"] += 1
+                    support_groups[group_key]["response_ok"] += 1
                     totals["response_ok"] += 1
 
             resolution_in_period = (
@@ -94,10 +98,12 @@ class SlaDashboardService:
                 bucket = self._bucket(t.close_at, bucket_mode)
                 trend[bucket]["resolution_total"] += 1
                 engineers[engineer_key]["resolution_total"] += 1
+                support_groups[group_key]["resolution_total"] += 1
                 totals["resolution_total"] += 1
                 if ok:
                     trend[bucket]["resolution_ok"] += 1
                     engineers[engineer_key]["resolution_ok"] += 1
+                    support_groups[group_key]["resolution_ok"] += 1
                     totals["resolution_ok"] += 1
 
         trend_rows = []
@@ -110,6 +116,19 @@ class SlaDashboardService:
                 "response_total": x["response_total"],
                 "resolution_total": x["resolution_total"],
             })
+
+        group_rows = []
+        for (gid, name), x in support_groups.items():
+            group_rows.append({
+                "group_id": gid, "group": name,
+                "response_total": x["response_total"], "response_ok": x["response_ok"],
+                "response_violations": x["response_total"] - x["response_ok"],
+                "first_response_pct": self._pct(x["response_ok"], x["response_total"]),
+                "resolution_total": x["resolution_total"], "resolution_ok": x["resolution_ok"],
+                "resolution_violations": x["resolution_total"] - x["resolution_ok"],
+                "resolution_pct": self._pct(x["resolution_ok"], x["resolution_total"]),
+            })
+        group_rows.sort(key=lambda x: x["group"])
 
         engineer_rows = []
         for (eid, name), x in engineers.items():
@@ -137,6 +156,7 @@ class SlaDashboardService:
                 "resolution_pct": self._pct(totals["resolution_ok"], totals["resolution_total"]),
             },
             "trend": trend_rows,
+            "groups": group_rows,
             "engineers": engineer_rows,
             "bucket_mode": bucket_mode,
         }
