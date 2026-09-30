@@ -28,6 +28,11 @@ def set_report_excluded_group_ids(group_ids: tuple[int, ...]):
     return _report_excluded_group_ids.set(group_ids)
 
 
+def get_report_excluded_group_ids() -> tuple[int, ...]:
+    """Return exclusions for the current report request."""
+    return _report_excluded_group_ids.get() or ()
+
+
 def reset_report_excluded_group_ids(token) -> None:
     _report_excluded_group_ids.reset(token)
 
