@@ -8,6 +8,7 @@ from app.models import Ticket, User, Group, Organization, TicketState, ReportReg
 # 8 = "Не актуально" (system state type is closed, but it must not affect reports).
 EXCLUDED_REPORT_STATE_IDS = (8,)
 from app.services.metric_settings_service import get_metric_int
+from app.services.report_group_exclusions import get_report_excluded_group_ids
 
 
 class ReportService:
@@ -1292,9 +1293,13 @@ class ReportService:
 
     def engineer_report_filter_options(self):
         options = self.transfer_filter_options()
+        excluded_group_ids = get_report_excluded_group_ids()
+        group_query = self.db.query(Group).filter(Group.active.is_(True))
+        if excluded_group_ids:
+            group_query = group_query.filter(~Group.id.in_(excluded_group_ids))
         options["groups"] = [
             {"id": g.id, "name": g.name}
-            for g in self.db.query(Group).filter(Group.active.is_(True)).order_by(Group.name).all()
+            for g in group_query.order_by(Group.name).all()
         ]
 
         # Only users that actually appear as ticket owners/agents.
