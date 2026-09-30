@@ -23,17 +23,39 @@
   <div style="height:360px"><canvas id="slaTrendChart"></canvas></div>
 </article>
 
-<h3>По инженерам</h3>
+<h3>SLA по группам поддержки</h3>
 <div class="table-wrapper"><table class="report-table compact-table">
-<thead><tr><th>Инженер</th><th>First Response: заявок</th><th>First Response SLA, %</th><th>Нарушений</th><th>Resolution: заявок</th><th>Resolution SLA, %</th><th>Нарушений</th></tr></thead>
+<thead><tr>
+<th>Группа поддержки</th>
+<th>FR всего</th><th>FR соблюдено</th><th>FR нарушено</th><th>FR SLA, %</th>
+<th>Resolution всего</th><th>Resolution соблюдено</th><th>Resolution нарушено</th><th>Resolution SLA, %</th>
+</tr></thead>
 <tbody>
-{% for row in rows %}<tr>
-<td><a href="/reports/sla-dashboard{% if date_from %}?date_from={{ date_from }}{% else %}?{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if region %}&region={{ region|urlencode }}{% endif %}{% if group_id %}&group_id={{ group_id }}{% endif %}&engineer_id={{ row.engineer_id }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}">{{ row.engineer }}</a></td>
-<td>{{ row.response_total }}</td><td>{{ row.first_response_pct if row.first_response_pct is not none else '—' }}</td><td>{{ row.response_violations }}</td>
-<td>{{ row.resolution_total }}</td><td>{{ row.resolution_pct if row.resolution_pct is not none else '—' }}</td><td>{{ row.resolution_violations }}</td>
+{% for row in group_rows %}<tr>
+<td><a href="/reports/sla-dashboard?{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}{% if region %}region={{ region|urlencode }}&{% endif %}group_id={{ row.group_id }}{% if organization_id %}&organization_id={{ organization_id }}{% endif %}#engineers">{{ row.group }}</a></td>
+<td>{{ row.response_total }}</td><td>{{ row.response_ok }}</td><td>{{ row.response_violations }}</td><td>{{ row.first_response_pct if row.first_response_pct is not none else '—' }}</td>
+<td>{{ row.resolution_total }}</td><td>{{ row.resolution_ok }}</td><td>{{ row.resolution_violations }}</td><td>{{ row.resolution_pct if row.resolution_pct is not none else '—' }}</td>
 </tr>{% endfor %}
-{% if not rows %}<tr><td colspan="7" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
+{% if not group_rows %}<tr><td colspan="9" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
 </tbody></table></div>
+
+{% if group_id %}
+<h3 id="engineers">SLA по инженерам — {% for x in options.groups %}{% if x.id == group_id %}{{ x.name }}{% endif %}{% endfor %}</h3>
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr>
+<th>Инженер</th>
+<th>FR всего</th><th>FR соблюдено</th><th>FR нарушено</th><th>FR SLA, %</th>
+<th>Resolution всего</th><th>Resolution соблюдено</th><th>Resolution нарушено</th><th>Resolution SLA, %</th>
+</tr></thead>
+<tbody>
+{% for row in engineer_rows %}<tr>
+<td>{{ row.engineer }}</td>
+<td>{{ row.response_total }}</td><td>{{ row.response_total - row.response_violations }}</td><td>{{ row.response_violations }}</td><td>{{ row.first_response_pct if row.first_response_pct is not none else '—' }}</td>
+<td>{{ row.resolution_total }}</td><td>{{ row.resolution_total - row.resolution_violations }}</td><td>{{ row.resolution_violations }}</td><td>{{ row.resolution_pct if row.resolution_pct is not none else '—' }}</td>
+</tr>{% endfor %}
+{% if not engineer_rows %}<tr><td colspan="9" class="center empty-row">Нет данных по инженерам выбранной группы</td></tr>{% endif %}
+</tbody></table></div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
