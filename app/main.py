@@ -13,6 +13,10 @@ from app.routes import admin_regions, excluded_groups, sla_dashboard, category_s
 from app.services.app_settings_service import get_app_setting
 from app.services.report_group_exclusions import parse_excluded_group_ids, reset_report_excluded_group_ids, set_report_excluded_group_ids
 
+# Category report participates in the same visibility/order settings as other reports.
+if not any(key == "categories" for key, _ in ui.REPORT_VISIBILITY_OPTIONS):
+    ui.REPORT_VISIBILITY_OPTIONS.append(("categories", "Отчет по категориям"))
+
 Base.metadata.create_all(bind=engine)
 with engine.begin() as conn:
     conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE"))
