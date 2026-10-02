@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from app.models import CategoryLabel, Group, ReportRegion, Ticket
 
 
+EMPTY_SUBCATEGORY = "__not_filled__"
+
+
 class CategoryReportService:
     def __init__(self, db: Session):
         self.db = db
@@ -57,10 +60,14 @@ class CategoryReportService:
             if t.close_diff_in_min is not None:
                 c["res_total"] += 1; c["res_ok"] += int(t.close_diff_in_min >= 0)
 
-            # category and sub_accesses are intentionally not hard-linked.
-            # For drill-down, the relationship comes only from tickets that contain both values.
-            if category and t.category == category and t.sub_accesses:
-                s = subcategories[t.sub_accesses]
+            # Drill-down is based on both values from the same ticket:
+            # 1) ticket.category must equal the selected category;
+            # 2) then the ticket is counted by its sub_accesses value.
+            # Empty/blank sub_accesses is kept as a separate bucket so the
+            # subcategory totals always reconcile with the selected category.
+            if category and t.category == category:
+                sub_value = (t.sub_accesses or "").strip() or EMPTY_SUBCATEGORY
+                s = subcategories[sub_value]
                 s["total"] += 1; s["closed" if is_closed else "open"] += 1
                 if t.first_response_diff_in_min is not None:
                     s["fr_total"] += 1; s["fr_ok"] += int(t.first_response_diff_in_min >= 0)
@@ -70,9 +77,13 @@ class CategoryReportService:
         def rows(source, field_name):
             result = []
             for value, x in source.items():
+                if field_name == "sub_accesses" and value == EMPTY_SUBCATEGORY:
+                    display_name = "Подкатегория не заполнена"
+                else:
+                    display_name = labels.get((field_name, value), value)
                 result.append({
                     "value": value,
-                    "name": labels.get((field_name, value), value),
+                    "name": display_name,
                     "total": x["total"], "open": x["open"], "closed": x["closed"],
                     "first_response_pct": self._pct(x["fr_ok"], x["fr_total"]),
                     "resolution_pct": self._pct(x["res_ok"], x["res_total"]),
