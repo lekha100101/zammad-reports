@@ -37,6 +37,7 @@
                 {% endif %}
               {% endfor %}
               <a href="/reports/sla-dashboard" class="menu-btn {% if request.url.path == '/reports/sla-dashboard' %}active{% endif %}">Общий отчет по SLA</a>
+              <a href="/reports/categories" class="menu-btn {% if request.url.path == '/reports/categories' %}active{% endif %}">Отчет по категориям</a>
             </div>
 
             <button class="side-nav-section side-nav-section-toggle" type="button" data-nav-toggle data-icon="fa-gears" aria-expanded="true">
@@ -51,6 +52,7 @@
               <a href="/admin/report-metrics" class="menu-btn {% if request.url.path.startswith('/admin/report-metrics') %}active{% endif %}">Метрики отчетов</a>
               <a href="/admin/report-visibility" class="menu-btn {% if request.url.path.startswith('/admin/report-visibility') %}active{% endif %}">Отображение отчетов</a>
               <a href="/admin/excluded-groups" class="menu-btn {% if request.url.path.startswith('/admin/excluded-groups') %}active{% endif %}">Исключённые группы</a>
+              <a href="/admin/categories" class="menu-btn {% if request.url.path.startswith('/admin/categories') %}active{% endif %}">Настройка категорий</a>
             </div>
           </nav>
         </div>
