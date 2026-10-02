@@ -63,6 +63,8 @@ class Ticket(Base):
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     state_id = Column(Integer, nullable=True)
     priority_id = Column(Integer, nullable=True)
+    category = Column(String(255), nullable=True, index=True)
+    sub_accesses = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=True, index=True)
     updated_at = Column(DateTime, nullable=True)
     close_at = Column(DateTime, nullable=True)
@@ -128,7 +130,6 @@ class ReportRegion(Base):
 
 class ReportMetricSetting(Base):
     __tablename__ = "report_metric_settings"
-
     id = Column(Integer, primary_key=True)
     key = Column(String(100), unique=True, index=True, nullable=False)
     value = Column(String(100), nullable=False)
@@ -137,8 +138,16 @@ class ReportMetricSetting(Base):
 
 class AppSetting(Base):
     __tablename__ = "app_settings"
-
     id = Column(Integer, primary_key=True)
     key = Column(String(100), unique=True, index=True, nullable=False)
     value = Column(Text, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+
+
+class CategoryLabel(Base):
+    __tablename__ = "category_labels"
+    id = Column(Integer, primary_key=True)
+    field_name = Column(String(50), nullable=False, index=True)
+    technical_value = Column(String(255), nullable=False, index=True)
+    display_name = Column(String(255), nullable=False)
     updated_at = Column(DateTime, nullable=True)
