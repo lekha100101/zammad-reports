@@ -31,6 +31,9 @@ class SyncService:
         self.db = db
         self.base_url = base_url.rstrip("/")
         self.headers = {"Authorization": f"Token token={token}", "Content-Type": "application/json"}
+        # Category values can repeat many times inside one ticket-sync transaction.
+        # Cache known/pending pairs so we never stage duplicate CategoryLabel rows.
+        self._known_category_values = None
 
     def _log_start(self, sync_type):
         log = SyncLog(sync_type=sync_type, status="running", started_at=datetime.utcnow())
@@ -50,16 +53,34 @@ class SyncService:
             raise RuntimeError(f"Zammad request failed: GET {path}: {response.status_code} {response.text[:1000]}")
         return response.json()
 
+    def _load_known_category_values(self):
+        self._known_category_values = {
+            (field_name, technical_value)
+            for field_name, technical_value in self.db.query(
+                CategoryLabel.field_name,
+                CategoryLabel.technical_value,
+            ).all()
+        }
+
     def _discover_category_value(self, field_name, value):
         value = (value or "").strip() if isinstance(value, str) else value
         if not value:
             return
         value = str(value)
-        row = (self.db.query(CategoryLabel)
-               .filter(CategoryLabel.field_name == field_name, CategoryLabel.technical_value == value)
-               .one_or_none())
-        if row is None:
-            self.db.add(CategoryLabel(field_name=field_name, technical_value=value, display_name=value, updated_at=datetime.utcnow()))
+        if self._known_category_values is None:
+            self._load_known_category_values()
+        key = (field_name, value)
+        if key in self._known_category_values:
+            return
+        # Add to the cache before staging the INSERT. Repeated tickets in the
+        # same page/session will therefore not create duplicate pending rows.
+        self._known_category_values.add(key)
+        self.db.add(CategoryLabel(
+            field_name=field_name,
+            technical_value=value,
+            display_name=value,
+            updated_at=datetime.utcnow(),
+        ))
 
     def sync_users(self):
         log = self._log_start("users")
@@ -99,6 +120,8 @@ class SyncService:
 
     def sync_tickets(self):
         log=self._log_start("tickets"); changed_ticket_ids=[]; seen_ticket_ids=set()
+        # Refresh cache at the start of each ticket synchronization run.
+        self._load_known_category_values()
         try:
             page,per_page,count=1,100,0
             while True:
