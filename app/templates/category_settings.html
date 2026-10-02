@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Настройка категорий</h1>
+<p>Значения автоматически появляются из полей <code>category</code> и <code>sub_accesses</code> заявок Zammad. Здесь задается только человекочитаемое название.</p>
+{% if request.query_params.get('saved') %}<p><strong>Настройки сохранены.</strong></p>{% endif %}
+<form method="post" action="/admin/categories">
+<div class="table-wrapper"><table class="report-table compact-table">
+<thead><tr><th>Тип</th><th>Значение Zammad</th><th>Название в отчете</th></tr></thead>
+<tbody>
+{% for row in rows %}
+<tr>
+<td>{{ 'Категория' if row.field_name == 'category' else 'Подкатегория' }}</td>
+<td><code>{{ row.technical_value }}</code></td>
+<td><input type="hidden" name="label_id" value="{{ row.id }}"><input type="text" name="display_name" value="{{ row.display_name }}" style="margin:0; min-width:280px"></td>
+</tr>
+{% endfor %}
+{% if not rows %}<tr><td colspan="3" class="center empty-row">Категории пока не найдены. Запустите синхронизацию заявок.</td></tr>{% endif %}
+</tbody></table></div>
+<button type="submit">Сохранить</button>
+</form>
+{% endblock %}
