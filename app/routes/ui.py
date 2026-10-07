@@ -261,8 +261,15 @@ def run_sync(request: Request, db: Session = Depends(get_db)):
         if not SYNC_LOCK.acquire(blocking=False): return
         bg_db = SessionLocal()
         try:
-            zammad_url = get_app_setting(bg_db, "zammad_url"); zammad_token = get_app_setting(bg_db, "zammad_token")
-            if not zammad_url or not zammad_token: return
+            # Integration credentials are runtime configuration and must come
+            # from ENV/settings.  AppSetting may contain an old token saved by
+            # the admin form; using it here caused Web sync to authenticate with
+            # a stale token even when the container had the new ZAMMAD_TOKEN.
+            from app.config import settings
+            zammad_url = settings.zammad_url
+            zammad_token = settings.zammad_token
+            if not zammad_url or not zammad_token:
+                return
             SyncService(bg_db, zammad_url, zammad_token).sync_all()
         finally:
             bg_db.close(); SYNC_LOCK.release()
