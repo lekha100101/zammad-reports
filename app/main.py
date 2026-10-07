@@ -13,7 +13,6 @@ from app.routes import admin_regions, excluded_groups, sla_dashboard, category_s
 from app.services.app_settings_service import get_app_setting
 from app.services.report_group_exclusions import parse_excluded_group_ids, reset_report_excluded_group_ids, set_report_excluded_group_ids
 
-# Category report participates in the same visibility/order settings as other reports.
 if not any(key == "categories" for key, _ in ui.REPORT_VISIBILITY_OPTIONS):
     ui.REPORT_VISIBILITY_OPTIONS.append(("categories", "Отчет по категориям"))
 
@@ -21,10 +20,9 @@ Base.metadata.create_all(bind=engine)
 with engine.begin() as conn:
     conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tickets_is_deleted ON tickets (is_deleted)"))
-    conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category VARCHAR(255)"))
-    conn.execute(text("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sub_accesses VARCHAR(255)"))
-    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tickets_category ON tickets (category)"))
-    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tickets_sub_accesses ON tickets (sub_accesses)"))
+    for field_name in ("category", "sub_internet", "sub_server", "sub_accesses", "sub_software", "sub_mail"):
+        conn.execute(text(f"ALTER TABLE tickets ADD COLUMN IF NOT EXISTS {field_name} VARCHAR(255)"))
+        conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_tickets_{field_name} ON tickets ({field_name})"))
     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_category_labels_field_value ON category_labels (field_name, technical_value)"))
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
