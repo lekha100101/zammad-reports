@@ -11,15 +11,33 @@ from app.routes.ui import templates
 
 router = APIRouter(tags=["category-settings"])
 
+CATEGORY_FIELDS = (
+    ("category", Ticket.category),
+    ("sub_internet", Ticket.sub_internet),
+    ("sub_server", Ticket.sub_server),
+    ("sub_accesses", Ticket.sub_accesses),
+    ("sub_software", Ticket.sub_software),
+    ("sub_mail", Ticket.sub_mail),
+)
+
 
 def _discover(db: Session):
-    for field_name, column in (("category", Ticket.category), ("sub_accesses", Ticket.sub_accesses)):
+    for field_name, column in CATEGORY_FIELDS:
         values = db.query(column).filter(column.isnot(None), column != "").distinct().all()
-        existing = {x.technical_value for x in db.query(CategoryLabel).filter(CategoryLabel.field_name == field_name).all()}
+        existing = {
+            x.technical_value
+            for x in db.query(CategoryLabel).filter(CategoryLabel.field_name == field_name).all()
+        }
         for (value,) in values:
             value = (value or "").strip()
             if value and value not in existing:
-                db.add(CategoryLabel(field_name=field_name, technical_value=value, display_name=value, updated_at=datetime.utcnow()))
+                db.add(CategoryLabel(
+                    field_name=field_name,
+                    technical_value=value,
+                    display_name=value,
+                    updated_at=datetime.utcnow(),
+                ))
+                existing.add(value)
     db.commit()
 
 
@@ -28,12 +46,21 @@ def _discover(db: Session):
 def categories_page(request: Request, db: Session = Depends(get_db)):
     _discover(db)
     rows = db.query(CategoryLabel).order_by(CategoryLabel.field_name, CategoryLabel.technical_value).all()
-    return templates.TemplateResponse("category_settings.html", {"request": request, "rows": rows, "current_user": request.state.current_user})
+    return templates.TemplateResponse("category_settings.html", {
+        "request": request,
+        "rows": rows,
+        "current_user": request.state.current_user,
+    })
 
 
 @router.post("/admin/categories")
 @admin_required_page
-def categories_save(request: Request, label_id: list[str] = Form(default=[]), display_name: list[str] = Form(default=[]), db: Session = Depends(get_db)):
+def categories_save(
+    request: Request,
+    label_id: list[str] = Form(default=[]),
+    display_name: list[str] = Form(default=[]),
+    db: Session = Depends(get_db),
+):
     for raw_id, name in zip(label_id, display_name):
         if not raw_id.isdigit():
             continue
