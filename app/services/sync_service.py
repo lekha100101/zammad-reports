@@ -82,6 +82,70 @@ class SyncService:
             updated_at=datetime.utcnow(),
         ))
 
+    def sync_category_labels(self):
+        """Refresh Russian category/subcategory labels from Zammad Object Manager."""
+        fields = {"category", "sub_internet", "sub_server", "sub_accesses", "sub_software", "sub_mail"}
+        try:
+            data = self._get_json("/api/v1/object_manager_attributes")
+        except Exception as exc:
+            # Metadata is helpful for display, but must never break ticket sync.
+            print(f"category metadata sync skipped: {exc}")
+            return 0
+
+        if not isinstance(data, list):
+            print("category metadata sync skipped: unexpected response")
+            return 0
+
+        count = 0
+        now = datetime.utcnow()
+        for attribute in data:
+            field_name = attribute.get("name")
+            if field_name not in fields:
+                continue
+
+            data_option = attribute.get("data_option") or {}
+            # Historical values first; current options then override them.
+            values = {}
+            historical = data_option.get("historical_options") or {}
+            if isinstance(historical, dict):
+                for technical_value, display_name in historical.items():
+                    if technical_value and display_name:
+                        values[str(technical_value)] = str(display_name)
+
+            options = data_option.get("options") or []
+            if isinstance(options, list):
+                for option in options:
+                    if not isinstance(option, dict):
+                        continue
+                    technical_value = option.get("value")
+                    display_name = option.get("name")
+                    if technical_value and display_name:
+                        values[str(technical_value)] = str(display_name)
+
+            for technical_value, display_name in values.items():
+                row = (
+                    self.db.query(CategoryLabel)
+                    .filter(
+                        CategoryLabel.field_name == field_name,
+                        CategoryLabel.technical_value == technical_value,
+                    )
+                    .one_or_none()
+                )
+                if row is None:
+                    row = CategoryLabel(
+                        field_name=field_name,
+                        technical_value=technical_value,
+                    )
+                    self.db.add(row)
+                row.display_name = display_name
+                row.updated_at = now
+                count += 1
+
+        self.db.commit()
+        # Ticket sync may continue in the same service instance.
+        self._load_known_category_values()
+        return count
+
     def sync_users(self):
         log = self._log_start("users")
         try:
@@ -209,9 +273,10 @@ class SyncService:
             self._log_fail(log,exc); raise
 
     def sync_all(self):
+        category_labels=self.sync_category_labels()
         users=self.sync_users(); groups=self.sync_groups(); organizations=self.sync_organizations(); states=self.sync_ticket_states(); tickets_result=self.sync_tickets(); changed_ticket_ids=tickets_result["changed_ticket_ids"]
         history={"tickets":0,"events":0,"skipped":0,"failed":0}
         for ticket_id in changed_ticket_ids:
             result=self.sync_ticket_history(ticket_id=ticket_id)
             for key in history: history[key]+=result.get(key,0)
-        return {"users":users,"groups":groups,"organizations":organizations,"states":states,"tickets":tickets_result["count"],"deleted_in_zammad":tickets_result.get("deleted_in_zammad",0),"history":history,"history_changed_tickets":len(changed_ticket_ids)}
+        return {"category_labels":category_labels,"users":users,"groups":groups,"organizations":organizations,"states":states,"tickets":tickets_result["count"],"deleted_in_zammad":tickets_result.get("deleted_in_zammad",0),"history":history,"history_changed_tickets":len(changed_ticket_ids)}
