@@ -64,7 +64,11 @@ class Ticket(Base):
     state_id = Column(Integer, nullable=True)
     priority_id = Column(Integer, nullable=True)
     category = Column(String(255), nullable=True, index=True)
+    sub_internet = Column(String(255), nullable=True, index=True)
+    sub_server = Column(String(255), nullable=True, index=True)
     sub_accesses = Column(String(255), nullable=True, index=True)
+    sub_software = Column(String(255), nullable=True, index=True)
+    sub_mail = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=True, index=True)
     updated_at = Column(DateTime, nullable=True)
     close_at = Column(DateTime, nullable=True)
@@ -127,6 +131,7 @@ class ReportRegion(Base):
     id = Column(Integer, primary_key=True)
     group_id = Column(Integer, unique=True, index=True)
     name = Column(String, nullable=False)
+
 
 class ReportMetricSetting(Base):
     __tablename__ = "report_metric_settings"
