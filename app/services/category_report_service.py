@@ -7,6 +7,13 @@ from app.models import CategoryLabel, Group, ReportRegion, Ticket
 
 
 EMPTY_SUBCATEGORY = "__not_filled__"
+SUBCATEGORY_FIELDS = {
+    "internet": "sub_internet",
+    "server": "sub_server",
+    "accesses": "sub_accesses",
+    "software": "sub_software",
+    "mail": "sub_mail",
+}
 
 
 class CategoryReportService:
@@ -47,44 +54,53 @@ class CategoryReportService:
 
         categories = defaultdict(lambda: {"total": 0, "open": 0, "closed": 0, "fr_ok": 0, "fr_total": 0, "res_ok": 0, "res_total": 0})
         subcategories = defaultdict(lambda: {"total": 0, "open": 0, "closed": 0, "fr_ok": 0, "fr_total": 0, "res_ok": 0, "res_total": 0})
+        selected_sub_field = SUBCATEGORY_FIELDS.get(category)
 
         for t in q.all():
             display_region = regions.get(t.group_id) or groups.get(t.group_id) or "Без группы"
             if region and display_region != region:
                 continue
+
             is_closed = t.close_at is not None
             c = categories[t.category]
-            c["total"] += 1; c["closed" if is_closed else "open"] += 1
+            c["total"] += 1
+            c["closed" if is_closed else "open"] += 1
             if t.first_response_diff_in_min is not None:
-                c["fr_total"] += 1; c["fr_ok"] += int(t.first_response_diff_in_min >= 0)
+                c["fr_total"] += 1
+                c["fr_ok"] += int(t.first_response_diff_in_min >= 0)
             if t.close_diff_in_min is not None:
-                c["res_total"] += 1; c["res_ok"] += int(t.close_diff_in_min >= 0)
+                c["res_total"] += 1
+                c["res_ok"] += int(t.close_diff_in_min >= 0)
 
-            # Drill-down is based on both values from the same ticket:
-            # 1) ticket.category must equal the selected category;
-            # 2) then the ticket is counted by its sub_accesses value.
-            # Empty/blank sub_accesses is kept as a separate bucket so the
-            # subcategory totals always reconcile with the selected category.
+            # A subcategory is meaningful only in the context of its category.
+            # Ignore all other sub_* values, including stale values left by Zammad.
             if category and t.category == category:
-                sub_value = (t.sub_accesses or "").strip() or EMPTY_SUBCATEGORY
+                raw_value = getattr(t, selected_sub_field, None) if selected_sub_field else None
+                sub_value = (raw_value or "").strip() or EMPTY_SUBCATEGORY
                 s = subcategories[sub_value]
-                s["total"] += 1; s["closed" if is_closed else "open"] += 1
+                s["total"] += 1
+                s["closed" if is_closed else "open"] += 1
                 if t.first_response_diff_in_min is not None:
-                    s["fr_total"] += 1; s["fr_ok"] += int(t.first_response_diff_in_min >= 0)
+                    s["fr_total"] += 1
+                    s["fr_ok"] += int(t.first_response_diff_in_min >= 0)
                 if t.close_diff_in_min is not None:
-                    s["res_total"] += 1; s["res_ok"] += int(t.close_diff_in_min >= 0)
+                    s["res_total"] += 1
+                    s["res_ok"] += int(t.close_diff_in_min >= 0)
 
         def rows(source, field_name):
             result = []
             for value, x in source.items():
-                if field_name == "sub_accesses" and value == EMPTY_SUBCATEGORY:
-                    display_name = "Подкатегория не заполнена"
-                else:
-                    display_name = labels.get((field_name, value), value)
+                display_name = (
+                    "Подкатегория не заполнена"
+                    if value == EMPTY_SUBCATEGORY
+                    else labels.get((field_name, value), value)
+                )
                 result.append({
                     "value": value,
                     "name": display_name,
-                    "total": x["total"], "open": x["open"], "closed": x["closed"],
+                    "total": x["total"],
+                    "open": x["open"],
+                    "closed": x["closed"],
                     "first_response_pct": self._pct(x["fr_ok"], x["fr_total"]),
                     "resolution_pct": self._pct(x["res_ok"], x["res_total"]),
                 })
@@ -92,6 +108,6 @@ class CategoryReportService:
 
         return {
             "categories": rows(categories, "category"),
-            "subcategories": rows(subcategories, "sub_accesses"),
+            "subcategories": rows(subcategories, selected_sub_field or ""),
             "selected_category_name": labels.get(("category", category), category) if category else None,
         }
