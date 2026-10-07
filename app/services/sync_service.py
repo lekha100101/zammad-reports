@@ -131,7 +131,7 @@ class SyncService:
                 if not data: break
                 for t in data:
                     seen_ticket_ids.add(int(t["id"]))
-                    detail_fields=("first_response_diff_in_min","close_diff_in_min","category","sub_accesses")
+                    detail_fields=("first_response_diff_in_min","close_diff_in_min","category","sub_internet","sub_server","sub_accesses","sub_software","sub_mail")
                     ticket_data=t
                     if not all(field in t for field in detail_fields):
                         try: ticket_data=self._get_json(f"/api/v1/tickets/{t['id']}")
