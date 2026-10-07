@@ -244,13 +244,19 @@ def report_metrics_settings_save(request: Request, db: Session = Depends(get_db)
 @router.get("/admin/settings", response_class=HTMLResponse)
 @admin_required_page
 def app_settings_page(request: Request, db: Session = Depends(get_db)):
+    from app.config import settings
     app_settings = get_app_settings(db)
-    return templates.TemplateResponse("app_settings.html", {"request": request, "app_settings": app_settings, "current_user": request.state.current_user})
+    integration_status = {
+        "zammad_token_configured": bool(settings.zammad_token),
+        "secret_key_configured": bool(settings.secret_key and settings.secret_key != "change-me"),
+        "debug_enabled": bool(settings.debug),
+    }
+    return templates.TemplateResponse("app_settings.html", {"request": request, "app_settings": app_settings, "integration_status": integration_status, "current_user": request.state.current_user})
 
 @router.post("/admin/settings")
 @admin_required_page
-def app_settings_save(request: Request, db: Session = Depends(get_db), app_name: str = Form(""), debug: str = Form("0"), zammad_url: str = Form(""), zammad_token: str = Form(""), zammad_verify_ssl: str = Form("1"), zammad_per_page: str = Form("100"), tz: str = Form(""), sync_token: str = Form("")):
-    update_app_settings(db, {"app_name": app_name, "debug": debug, "zammad_url": zammad_url, "zammad_token": zammad_token, "zammad_verify_ssl": zammad_verify_ssl, "zammad_per_page": zammad_per_page, "tz": tz, "sync_token": sync_token})
+def app_settings_save(request: Request, db: Session = Depends(get_db), app_name: str = Form(""), zammad_url: str = Form(""), zammad_verify_ssl: str = Form("1"), zammad_per_page: str = Form("100"), tz: str = Form("")):
+    update_app_settings(db, {"app_name": app_name, "zammad_url": zammad_url, "zammad_verify_ssl": zammad_verify_ssl, "zammad_per_page": zammad_per_page, "tz": tz})
     return RedirectResponse("/admin/settings", status_code=302)
 
 @router.post("/sync/run")
@@ -290,7 +296,8 @@ def run_history_sync(request: Request, db: Session = Depends(get_db)):
         if not SYNC_LOCK.acquire(blocking=False): return
         bg_db=SessionLocal()
         try:
-            zammad_url=get_app_setting(bg_db,"zammad_url"); zammad_token=get_app_setting(bg_db,"zammad_token")
+            from app.config import settings
+            zammad_url=settings.zammad_url; zammad_token=settings.zammad_token
             if not zammad_url or not zammad_token: return
             SyncService(bg_db,zammad_url,zammad_token).sync_ticket_history()
         except Exception as exc: print(f"ticket_history background sync failed: {exc}")
