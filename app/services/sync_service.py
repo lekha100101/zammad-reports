@@ -143,8 +143,23 @@ class SyncService:
                     self.db.add(obj); t=ticket_data
                     obj.number=t.get("number"); obj.title=t.get("title"); obj.group_id=t.get("group_id"); obj.owner_id=t.get("owner_id")
                     obj.customer_id=t.get("customer_id"); obj.organization_id=t.get("organization_id"); obj.state_id=t.get("state_id"); obj.priority_id=t.get("priority_id")
-                    obj.category=t.get("category") or None; obj.sub_accesses=t.get("sub_accesses") or None
-                    self._discover_category_value("category", obj.category); self._discover_category_value("sub_accesses", obj.sub_accesses)
+                    obj.category=t.get("category") or None
+                    obj.sub_internet=t.get("sub_internet") or None
+                    obj.sub_server=t.get("sub_server") or None
+                    obj.sub_accesses=t.get("sub_accesses") or None
+                    obj.sub_software=t.get("sub_software") or None
+                    obj.sub_mail=t.get("sub_mail") or None
+                    self._discover_category_value("category", obj.category)
+                    active_subcategory_fields = {
+                        "internet": "sub_internet",
+                        "server": "sub_server",
+                        "accesses": "sub_accesses",
+                        "software": "sub_software",
+                        "mail": "sub_mail",
+                    }
+                    active_subcategory_field = active_subcategory_fields.get(obj.category)
+                    if active_subcategory_field:
+                        self._discover_category_value(active_subcategory_field, getattr(obj, active_subcategory_field))
                     obj.first_response_at=parse_dt(t.get("first_response_at")); obj.first_response_escalation_at=parse_dt(t.get("first_response_escalation_at")); obj.first_response_in_min=t.get("first_response_in_min"); obj.first_response_diff_in_min=t.get("first_response_diff_in_min")
                     obj.close_at=parse_dt(t.get("close_at")); obj.close_escalation_at=parse_dt(t.get("close_escalation_at")); obj.close_in_min=t.get("close_in_min"); obj.close_diff_in_min=t.get("close_diff_in_min")
                     obj.update_escalation_at=parse_dt(t.get("update_escalation_at")); obj.update_in_min=t.get("update_in_min"); obj.update_diff_in_min=t.get("update_diff_in_min")
