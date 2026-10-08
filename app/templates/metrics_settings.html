@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Настройки метрик отчетов</h1>
+<p class="report-description">Отдельная вкладка для управления основными метриками отчетов. Здесь можно менять SLA-порог и ключевые пороги для отчета по нагрузке.</p>
+
+<form method="post" action="/admin/report-metrics">
+  <article>
+    <h3>SLA метрики</h3>
+    <div class="grid">
+      <label>
+        First response SLA (минуты)
+        <input type="number" min="1" step="1" name="sla_response_minutes" value="{{ metrics.sla_response_minutes }}">
+      </label>
+      <label>
+        Resolution SLA (часы)
+        <input type="number" min="1" step="1" name="sla_resolution_hours" value="{{ metrics.sla_resolution_hours }}">
+      </label>
+    </div>
+  </article>
+
+  <article>
+    <h3>Workload / Backlog метрики</h3>
+    <div class="grid">
+      <label>
+        Предупреждение по открытым тикетам
+        <input type="number" min="1" step="1" name="workload_open_warning" value="{{ metrics.workload_open_warning }}">
+      </label>
+      <label>
+        Критический порог открытых тикетов
+        <input type="number" min="1" step="1" name="workload_open_critical" value="{{ metrics.workload_open_critical }}">
+      </label>
+      <label>
+        Порог изменения backlog за день
+        <input type="number" min="1" step="1" name="backlog_delta_warning" value="{{ metrics.backlog_delta_warning }}">
+      </label>
+    </div>
+  </article>
+
+  <div class="page-actions">
+    <button type="submit" data-icon="fa-floppy-disk">Сохранить метрики</button>
+  </div>
+</form>
+{% endblock %}

@@ -2,34 +2,14 @@
 {% block content %}
 
 <h1>Сводный отчет по областям</h1>
-
-<form method="get" class="filter-bar">
-  <div class="filter-item">
-    <label>Дата с</label>
-    <div class="date-input">
-      <input type="date" name="date_from" value="{{ date_from or '' }}">
-    </div>
-  </div>
-
-  <div class="filter-item">
-    <label>Дата по</label>
-    <div class="date-input">
-      <input type="date" name="date_to" value="{{ date_to or '' }}">
-    </div>
-  </div>
-
-  <button type="submit">Применить</button>
-
-  <a role="button" class="secondary"
+<p class="report-description">Комплексная региональная сводка: поступило, закрыто, переходящие заявки, распределение по специалистам и средние времена реакции/закрытия.</p>
+{% include "_filter.html" %}
+<div class="page-actions">
+  <a role="button" data-icon="fa-file-excel"
      href="/api/reports/regional-summary/export.xlsx{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
     Excel
   </a>
-
-  <a role="button" class="secondary"
-     href="/api/reports/regional-summary/export.csv{% if date_from %}?date_from={{ date_from }}{% endif %}{% if date_to %}{% if date_from %}&{% else %}?{% endif %}date_to={{ date_to }}{% endif %}">
-    CSV
-  </a>
-</form>
+</div>
 
 <div class="table-wrapper">
   <table class="report-table compact-table regional-report-flat">

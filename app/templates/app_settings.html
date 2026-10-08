@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Настройки приложения</h1>
+<p class="report-description">Здесь хранятся только эксплуатационные параметры. Секреты и параметры запуска задаются через <code>.env</code> и не сохраняются в базе данных.</p>
+
+<form method="post" action="/admin/settings">
+  <article>
+    <h3>Общие</h3>
+    <div class="grid">
+      <label>
+        Название приложения
+        <input type="text" name="app_name" value="{{ app_settings.app_name }}">
+      </label>
+      <label>
+        Часовой пояс
+        <input type="text" name="tz" value="{{ app_settings.tz }}" placeholder="Asia/Almaty">
+      </label>
+    </div>
+  </article>
+
+  <article>
+    <h3>Интеграция с Zammad</h3>
+    <div class="grid">
+      <label>
+        Zammad URL
+        <input type="text" name="zammad_url" value="{{ app_settings.zammad_url }}">
+      </label>
+      <label>
+        Проверка SSL
+        <select name="zammad_verify_ssl">
+          <option value="1" {% if app_settings.zammad_verify_ssl == "1" %}selected{% endif %}>Включена</option>
+          <option value="0" {% if app_settings.zammad_verify_ssl != "1" %}selected{% endif %}>Отключена</option>
+        </select>
+      </label>
+      <label>
+        Записей на страницу API
+        <input type="number" min="1" max="1000" step="1" name="zammad_per_page" value="{{ app_settings.zammad_per_page }}">
+      </label>
+    </div>
+  </article>
+
+  <article>
+    <h3>Системные параметры</h3>
+    <p class="report-description">Эти параметры читаются только из <code>.env</code>. Значения секретов в интерфейсе не отображаются.</p>
+    <div class="grid">
+      <label>
+        Zammad Token
+        <input type="text" value="{{ 'Настроен' if integration_status.zammad_token_configured else 'Не настроен' }}" readonly>
+      </label>
+      <label>
+        SECRET_KEY
+        <input type="text" value="{{ 'Настроен' if integration_status.secret_key_configured else 'Требует настройки' }}" readonly>
+      </label>
+      <label>
+        DEBUG
+        <input type="text" value="{{ 'Включен' if integration_status.debug_enabled else 'Выключен' }}" readonly>
+      </label>
+    </div>
+  </article>
+
+  <div class="page-actions">
+    <button type="submit" data-icon="fa-floppy-disk">Сохранить настройки</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Возвраты заявок</h1>
+<p>Возвратом считается повторное назначение заявки инженеру, который уже был ее исполнителем ранее.</p>
+
+<form method="get" class="filter-bar">
+  <div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
+  <div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
+  <div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region == x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+  <div class="filter-item"><label>Кому вернули</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+  <div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+  <div class="filter-item"><label>№ заявки</label><input type="text" name="ticket_number" value="{{ ticket_number or '' }}"></div>
+  <button type="submit">Применить</button>
+  <a role="button" class="secondary" href="/reports/returns">Сбросить</a>
+</form>
+
+<p><b>Найдено возвратов:</b> {{ rows|length }}</p>
+<div class="table-wrapper">
+<table class="report-table compact-table">
+<thead><tr>
+  <th>№ заявки</th><th>Тема</th><th>Регион</th><th>От кого</th>
+  <th>Кому вернули</th><th>Дата/время возврата</th><th>Инициатор</th><th>Мед. организация</th>
+</tr></thead>
+<tbody>
+{% for row in rows %}
+<tr>
+  <td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.region }}</td>
+  <td>{{ row.from_engineer }}</td><td>{{ row.returned_to }}</td>
+  <td>{{ row.returned_at.strftime('%Y-%m-%d %H:%M:%S') if row.returned_at else '' }}</td>
+  <td>{{ row.initiator }}</td><td>{{ row.organization }}</td>
+</tr>
+{% endfor %}
+{% if not rows %}<tr><td colspan="8" class="center empty-row">Возвраты по выбранным условиям не найдены</td></tr>{% endif %}
+</tbody>
+</table>
+</div>
+{% endblock %}

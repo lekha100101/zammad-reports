@@ -69,6 +69,10 @@ def get_report_data(report_name: str, db: Session, date_from=None, date_to=None)
         return service.tickets_by_organization(date_from, date_to)
     if report_name == "regional-summary":
         return service.regional_period_report(date_from, date_to)
+    if report_name == "sla":
+        return service.sla_report(date_from, date_to)
+    if report_name == "workload":
+        return service.workload_report(date_from, date_to)
 
     raise HTTPException(status_code=404, detail="Unknown report")
 
@@ -83,7 +87,10 @@ def export_csv(
 ):
     require_user(request, db)
     data = get_report_data(report_name, db, date_from, date_to)
-    df = pd.DataFrame(data)
+    if report_name == "workload" and isinstance(data, dict):
+        df = pd.DataFrame(data.get("agents", []))
+    else:
+        df = pd.DataFrame(data)
 
     if df.empty:
         df = pd.DataFrame([{"message": "no_data"}])
@@ -139,28 +146,44 @@ def export_xlsx(
                     "Среднее время закрытия": row.get("avg_close_time", ""),
                     "Среднее время реагирования": row.get("avg_response_time", ""),
                 })
+    elif report_name == "workload":
+        normalized = data.get("agents", []) if isinstance(data, dict) else []
     else:
         normalized = data
 
-    df = pd.DataFrame(normalized)
-
-    if df.empty:
-        df = pd.DataFrame([{"message": "no_data"}])
+    if report_name == "workload" and isinstance(data, dict):
+        df_agents = pd.DataFrame(data.get("agents", []))
+        df_trend = pd.DataFrame(data.get("trend", []))
+        if df_agents.empty:
+            df_agents = pd.DataFrame([{"message": "no_data"}])
+        if df_trend.empty:
+            df_trend = pd.DataFrame([{"message": "no_data"}])
+    else:
+        df = pd.DataFrame(normalized)
+        if df.empty:
+            df = pd.DataFrame([{"message": "no_data"}])
 
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Report")
-        ws = writer.sheets["Report"]
+        if report_name == "workload" and isinstance(data, dict):
+            df_agents.to_excel(writer, index=False, sheet_name="Agents")
+            df_trend.to_excel(writer, index=False, sheet_name="BacklogTrend")
+            sheet_names = ["Agents", "BacklogTrend"]
+        else:
+            df.to_excel(writer, index=False, sheet_name="Report")
+            sheet_names = ["Report"]
 
-        for column_cells in ws.columns:
-            max_length = 0
-            letter = column_cells[0].column_letter
-            for cell in column_cells:
-                value = "" if cell.value is None else str(cell.value)
-                if len(value) > max_length:
-                    max_length = len(value)
-                cell.alignment = cell.alignment.copy(wrap_text=True, vertical="top")
-            ws.column_dimensions[letter].width = min(max_length + 2, 40)
+        for name in sheet_names:
+            ws = writer.sheets[name]
+            for column_cells in ws.columns:
+                max_length = 0
+                letter = column_cells[0].column_letter
+                for cell in column_cells:
+                    value = "" if cell.value is None else str(cell.value)
+                    if len(value) > max_length:
+                        max_length = len(value)
+                    cell.alignment = cell.alignment.copy(wrap_text=True, vertical="top")
+                ws.column_dimensions[letter].width = min(max_length + 2, 40)
 
     output.seek(0)
 
@@ -182,3 +205,103 @@ def regional_summary(
 ):
     require_user(request, db)
     return ReportService(db).regional_period_report(date_from, date_to)
+
+def _optional_int(value):
+    if value is None:
+        return None
+    value = str(value).strip()
+    return int(value) if value.isdigit() else None
+
+
+@router.get("/transfers")
+def transfers(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    return ReportService(db).ticket_transfers(
+        date_from=date_from,
+        date_to=date_to,
+        region=region,
+        engineer_id=_optional_int(engineer_id),
+        organization_id=_optional_int(organization_id),
+        ticket_number=ticket_number,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+
+@router.get("/transfers/export.csv")
+def transfers_export_csv(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    rows = ReportService(db).ticket_transfers(
+        date_from, date_to, region, _optional_int(engineer_id),
+        _optional_int(organization_id), ticket_number, sort_by, sort_order
+    )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        df = pd.DataFrame([{"message": "no_data"}])
+    output = BytesIO()
+    output.write(df.to_csv(index=False).encode("utf-8-sig"))
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="transfers.csv"'},
+    )
+
+
+@router.get("/transfers/export.xlsx")
+def transfers_export_xlsx(
+    request: Request,
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    region: str | None = Query(None),
+    engineer_id: str | None = Query(None),
+    organization_id: str | None = Query(None),
+    ticket_number: str | None = Query(None),
+    sort_by: str | None = Query(None),
+    sort_order: str = Query("asc"),
+    db: Session = Depends(get_db),
+):
+    require_user(request, db)
+    rows = ReportService(db).ticket_transfers(
+        date_from, date_to, region, _optional_int(engineer_id),
+        _optional_int(organization_id), ticket_number, sort_by, sort_order
+    )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        df = pd.DataFrame([{"message": "no_data"}])
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Transfers")
+        ws = writer.sheets["Transfers"]
+        for column_cells in ws.columns:
+            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+            ws.column_dimensions[column_cells[0].column_letter].width = min(max_length + 2, 45)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="transfers.xlsx"'},
+    )
+

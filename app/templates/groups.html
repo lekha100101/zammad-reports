@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Отчет по группам</h1>
+<p class="report-description">Показывает объем обращений по группам поддержки, чтобы видеть, какие направления получают наибольший поток заявок.</p>
 {% include "_filter.html" %}
-<a role="button" href="/api/reports/groups/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+<div class="page-actions">
+  <a role="button" data-icon="fa-file-excel" href="/api/reports/groups/export.xlsx?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}">Excel</a>
+</div>
 <div class="table-wrapper">
   <table class="compact-table">
     <thead><tr><th>Группа</th><th>Количество</th></tr></thead>

@@ -3,6 +3,7 @@
 
 <h1>Справочник регионов</h1>
 
+<form method="post" action="/admin/regions/save-all">
 <div class="table-wrapper">
   <table class="report-table compact-table regions-table">
     <thead>
@@ -10,7 +11,6 @@
         <th>Group ID</th>
         <th>Название группы Zammad</th>
         <th>Название в отчете</th>
-        <th></th>
       </tr>
     </thead>
 
@@ -21,19 +21,13 @@
         <td>{{ g.name }}</td>
 
         <td class="region-name-col">
-          <form method="post" action="/admin/regions/save" class="region-row-form">
-            <input type="hidden" name="group_id" value="{{ g.id }}">
-            <input
-              type="text"
-              name="name"
-              value="{{ mapping[g.id].name if g.id in mapping else '' }}"
-              class="region-name-input"
-            >
-        </td>
-
-        <td class="region-save-col">
-            <button type="submit" class="btn-small btn-inline">Сохранить</button>
-          </form>
+          <input type="hidden" name="group_id" value="{{ g.id }}">
+          <input
+            type="text"
+            name="name"
+            value="{{ mapping[g.id].name if g.id in mapping else '' }}"
+            class="region-name-input"
+          >
         </td>
       </tr>
       {% endfor %}
@@ -41,5 +35,9 @@
 
   </table>
 </div>
+<div class="page-actions">
+  <button type="submit" data-icon="fa-floppy-disk">Сохранить изменения</button>
+</div>
+</form>
 
 {% endblock %}

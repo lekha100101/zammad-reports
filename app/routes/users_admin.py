@@ -2,15 +2,14 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.auth import admin_required_page, hash_password
 from app.deps import get_db
+from app.routes.ui import templates
 from app.models import AppUser
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)

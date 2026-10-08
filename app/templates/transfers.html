@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block content %}
+<h1>Переводы между инженерами</h1>
+<form method="get" class="filter-bar">
+<div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
+<div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
+<div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id==x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>№ заявки</label><input type="text" name="ticket_number" value="{{ ticket_number or '' }}" placeholder="Например 446026"></div>
+<input type="hidden" name="sort_by" value="{{ sort_by }}"><input type="hidden" name="sort_order" value="{{ sort_order }}">
+<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/transfers">Сбросить</a>
+{% set qs = 'date_from=' ~ (date_from or '') ~ '&date_to=' ~ (date_to or '') ~ '&region=' ~ (region or '') ~ '&engineer_id=' ~ (engineer_id or '') ~ '&organization_id=' ~ (organization_id or '') ~ '&ticket_number=' ~ (ticket_number or '') ~ '&sort_by=' ~ sort_by ~ '&sort_order=' ~ sort_order %}
+<a role="button" class="secondary" href="/api/reports/transfers/export.xlsx?{{ qs }}">Excel</a><a role="button" class="secondary" href="/api/reports/transfers/export.csv?{{ qs }}">CSV</a>
+</form>
+<p><b>Найдено переводов:</b> {{ rows|length }}</p>
+<div class="table-wrapper"><table class="report-table compact-table"><thead><tr>
+{% set cols=[('ticket_number','№ заявки'),('title','Тема'),('region','Регион'),('previous_engineer','Предыдущий инженер'),('new_engineer','Новый инженер'),('transferred_at','Дата/время передачи'),('initiator','Инициатор'),('organization','Мед. организация')] %}
+{% for key,label in cols %}<th><a href="?date_from={{ date_from or '' }}&date_to={{ date_to or '' }}&region={{ region or '' }}&engineer_id={{ engineer_id or '' }}&organization_id={{ organization_id or '' }}&ticket_number={{ ticket_number or '' }}&sort_by={{ key }}&sort_order={% if sort_by==key and sort_order=='asc' %}desc{% else %}asc{% endif %}">{{ label }}{% if sort_by==key %} {% if sort_order=='asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>{% endfor %}
+</tr></thead><tbody>
+{% for row in rows %}<tr><td>{{ row.ticket_number }}</td><td>{{ row.title }}</td><td>{{ row.region }}</td><td>{{ row.previous_engineer }}</td><td>{{ row.new_engineer }}</td><td>{{ row.transferred_at.strftime('%Y-%m-%d %H:%M:%S') if row.transferred_at else '' }}</td><td>{{ row.initiator }}</td><td>{{ row.organization }}</td></tr>{% endfor %}
+{% if not rows %}<tr><td colspan="8" class="center empty-row">Переводы по выбранным условиям не найдены</td></tr>{% endif %}
+</tbody></table></div>{% endblock %}

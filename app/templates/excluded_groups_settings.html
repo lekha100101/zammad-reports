@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Исключённые группы</h1>
+<p>Отмеченные группы будут исключены из отчётности. Заявки продолжат синхронизироваться и храниться в локальной базе.</p>
+
+<form method="post" action="/admin/excluded-groups">
+  <div class="table-wrapper">
+    <table class="report-table compact-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Группа Zammad</th>
+          <th class="center">Исключить из отчётов</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td>{{ group.id }}</td>
+          <td>{{ group.name }}</td>
+          <td class="center">
+            <input type="checkbox" name="excluded_group_ids" value="{{ group.id }}" {% if group.id in excluded_group_ids %}checked{% endif %}>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px">
+    <button type="submit">Сохранить</button>
+  </div>
+</form>
+{% endblock %}

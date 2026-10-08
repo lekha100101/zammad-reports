@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Текущие нарушения SLA</h1>
+<p>Текущие открытые заявки с нарушением SLA первого ответа и/или SLA закрытия. Расчет сроков выполняется Zammad с учетом рабочего календаря.</p>
+
+<form method="get" class="filter-bar">
+  <div class="filter-item">
+    <label>Регион</label>
+    <select name="region">
+      <option value="">Все</option>
+      {% for x in options.regions %}<option value="{{ x }}" {% if region == x %}selected{% endif %}>{{ x }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-item">
+    <label>Группа поддержки</label>
+    <select name="group_id">
+      <option value="">Все</option>
+      {% for x in options.groups %}<option value="{{ x.id }}" {% if group_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-item">
+    <label>Инженер</label>
+    <select name="engineer_id" class="engineer-select">
+      <option value="">Все</option>
+      {% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-item">
+    <label>Мед. организация</label>
+    <select name="organization_id">
+      <option value="">Все</option>
+      {% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit">Применить</button>
+  <a role="button" class="secondary" href="/reports/sla-current">Сбросить</a>
+</form>
+
+<p><b>Текущих нарушений:</b> {{ rows|length }}</p>
+<div class="table-wrapper">
+<table class="report-table compact-table">
+  <thead>
+    <tr>
+      <th>№ заявки</th>
+      <th>Тема</th>
+      <th>Дата создания</th>
+      <th>Регион</th>
+      <th>Группа</th>
+      <th>Инженер</th>
+      <th>Мед. организация</th>
+      <th>Статус</th>
+      <th>Тип нарушения</th>
+      <th>SLA deadline</th>
+      <th>Просрочка</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.ticket_number }}</td>
+      <td>{{ row.title }}</td>
+      <td>{{ row.created_at }}</td>
+      <td>{{ row.region }}</td>
+      <td>{{ row.group }}</td>
+      <td>{{ row.engineer }}</td>
+      <td>{{ row.organization }}</td>
+      <td>{{ row.state }}</td>
+      <td>{{ row.violation_type_name }}</td>
+      <td>{{ row.deadline_at if row.deadline_at else '—' }}</td>
+      <td>{{ row.violation }}</td>
+    </tr>
+    {% endfor %}
+    {% if not rows %}
+    <tr class="empty-row">
+      <td class="center">Текущих нарушений SLA нет</td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

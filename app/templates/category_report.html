@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Отчет по категориям</h1>
+<form method="get" action="/reports/categories" class="filter-bar">
+<div class="filter-item"><label>Дата с</label><input type="date" name="date_from" value="{{ date_from or '' }}"></div>
+<div class="filter-item"><label>Дата по</label><input type="date" name="date_to" value="{{ date_to or '' }}"></div>
+<div class="filter-item"><label>Регион</label><select name="region"><option value="">Все</option>{% for x in options.regions %}<option value="{{ x }}" {% if region == x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Группа поддержки</label><select name="group_id"><option value="">Все</option>{% for x in options.groups %}<option value="{{ x.id }}" {% if group_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Инженер</label><select name="engineer_id"><option value="">Все</option>{% for x in options.engineers %}<option value="{{ x.id }}" {% if engineer_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<div class="filter-item"><label>Мед. организация</label><select name="organization_id"><option value="">Все</option>{% for x in options.organizations %}<option value="{{ x.id }}" {% if organization_id == x.id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></div>
+<button type="submit">Применить</button><a role="button" class="secondary" href="/reports/categories">Сбросить</a>
+</form>
+
+<h3>Категории</h3>
+<div class="table-wrapper"><table class="report-table compact-table"><thead><tr><th>Категория</th><th>Всего</th><th>Открыто</th><th>Закрыто</th><th>First Response SLA, %</th><th>Resolution SLA, %</th></tr></thead><tbody>
+{% for row in data.categories %}<tr><td><a href="/reports/categories?{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}{% if region %}region={{ region|urlencode }}&{% endif %}{% if group_id %}group_id={{ group_id }}&{% endif %}{% if engineer_id %}engineer_id={{ engineer_id }}&{% endif %}{% if organization_id %}organization_id={{ organization_id }}&{% endif %}category={{ row.value|urlencode }}#subcategories">{{ row.name }}</a></td><td>{{ row.total }}</td><td>{{ row.open }}</td><td>{{ row.closed }}</td><td>{{ row.first_response_pct if row.first_response_pct is not none else '—' }}</td><td>{{ row.resolution_pct if row.resolution_pct is not none else '—' }}</td></tr>{% endfor %}
+{% if not data.categories %}<tr><td colspan="6" class="center empty-row">Нет данных по выбранным условиям</td></tr>{% endif %}
+</tbody></table></div>
+
+{% if category %}<h3 id="subcategories">Подкатегории — {{ data.selected_category_name }}</h3>
+<div class="table-wrapper"><table class="report-table compact-table"><thead><tr><th>Подкатегория</th><th>Всего</th><th>Открыто</th><th>Закрыто</th><th>First Response SLA, %</th><th>Resolution SLA, %</th></tr></thead><tbody>
+{% for row in data.subcategories %}<tr><td>{{ row.name }}</td><td>{{ row.total }}</td><td>{{ row.open }}</td><td>{{ row.closed }}</td><td>{{ row.first_response_pct if row.first_response_pct is not none else '—' }}</td><td>{{ row.resolution_pct if row.resolution_pct is not none else '—' }}</td></tr>{% endfor %}
+{% if not data.subcategories %}<tr><td colspan="6" class="center empty-row">У заявок этой категории нет заполненного sub_accesses</td></tr>{% endif %}
+</tbody></table></div>{% endif %}
+{% endblock %}

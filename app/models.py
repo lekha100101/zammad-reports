@@ -4,7 +4,6 @@ from app.db import Base
 
 class AppUser(Base):
     __tablename__ = "app_users"
-
     id = Column(Integer, primary_key=True)
     username = Column(String(150), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -16,7 +15,6 @@ class AppUser(Base):
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True)
     login = Column(String(255), index=True)
     firstname = Column(String(255), nullable=True)
@@ -30,7 +28,6 @@ class User(Base):
 
 class Group(Base):
     __tablename__ = "groups"
-
     id = Column(Integer, primary_key=True)
     name = Column(String(255), index=True)
     note = Column(Text, nullable=True)
@@ -41,7 +38,6 @@ class Group(Base):
 
 class Organization(Base):
     __tablename__ = "organizations"
-
     id = Column(Integer, primary_key=True)
     name = Column(String(255), index=True)
     note = Column(Text, nullable=True)
@@ -52,14 +48,12 @@ class Organization(Base):
 
 class TicketState(Base):
     __tablename__ = "ticket_states"
-
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
 
 
 class Ticket(Base):
     __tablename__ = "tickets"
-
     id = Column(Integer, primary_key=True)
     number = Column(String(50), index=True, nullable=True)
     title = Column(String(500), nullable=True)
@@ -69,17 +63,48 @@ class Ticket(Base):
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     state_id = Column(Integer, nullable=True)
     priority_id = Column(Integer, nullable=True)
+    category = Column(String(255), nullable=True, index=True)
+    sub_internet = Column(String(255), nullable=True, index=True)
+    sub_server = Column(String(255), nullable=True, index=True)
+    sub_accesses = Column(String(255), nullable=True, index=True)
+    sub_software = Column(String(255), nullable=True, index=True)
+    sub_mail = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=True, index=True)
     updated_at = Column(DateTime, nullable=True)
     close_at = Column(DateTime, nullable=True)
     escalation_at = Column(DateTime, nullable=True)
     first_response_at = Column(DateTime, nullable=True)
+    first_response_escalation_at = Column(DateTime, nullable=True)
+    first_response_in_min = Column(Integer, nullable=True)
+    first_response_diff_in_min = Column(Integer, nullable=True)
+    close_escalation_at = Column(DateTime, nullable=True)
+    close_in_min = Column(Integer, nullable=True)
+    close_diff_in_min = Column(Integer, nullable=True)
+    update_escalation_at = Column(DateTime, nullable=True)
+    update_in_min = Column(Integer, nullable=True)
+    update_diff_in_min = Column(Integer, nullable=True)
     pending_time = Column(DateTime, nullable=True)
+    is_deleted = Column(Boolean, default=False, nullable=False, index=True)
+
+
+class TicketHistory(Base):
+    __tablename__ = "ticket_history"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    zammad_history_id = Column(Integer, unique=True, index=True, nullable=False)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), index=True, nullable=False)
+    object = Column(String(100), nullable=True)
+    event_type = Column(String(50), nullable=True)
+    attribute = Column(String(100), index=True, nullable=True)
+    id_from = Column(Integer, nullable=True)
+    id_to = Column(Integer, nullable=True)
+    value_from = Column(Text, nullable=True)
+    value_to = Column(Text, nullable=True)
+    created_by_id = Column(Integer, index=True, nullable=True)
+    created_at = Column(DateTime, index=True, nullable=True)
 
 
 class TimeAccounting(Base):
     __tablename__ = "time_accountings"
-
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("tickets.id"), index=True)
     ticket_article_id = Column(Integer, nullable=True)
@@ -92,7 +117,6 @@ class TimeAccounting(Base):
 
 class SyncLog(Base):
     __tablename__ = "sync_logs"
-
     id = Column(Integer, primary_key=True)
     sync_type = Column(String(50), index=True)
     status = Column(String(50), default="started")
@@ -104,7 +128,31 @@ class SyncLog(Base):
 
 class ReportRegion(Base):
     __tablename__ = "report_regions"
-
     id = Column(Integer, primary_key=True)
     group_id = Column(Integer, unique=True, index=True)
     name = Column(String, nullable=False)
+
+
+class ReportMetricSetting(Base):
+    __tablename__ = "report_metric_settings"
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(String(100), nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+
+
+class CategoryLabel(Base):
+    __tablename__ = "category_labels"
+    id = Column(Integer, primary_key=True)
+    field_name = Column(String(50), nullable=False, index=True)
+    technical_value = Column(String(255), nullable=False, index=True)
+    display_name = Column(String(255), nullable=False)
+    updated_at = Column(DateTime, nullable=True)
